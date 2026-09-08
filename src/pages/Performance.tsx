@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
 import { CircularProgress } from '../components/ui/CircularProgress';
 import { ProgressBar } from '../components/ui/ProgressBar';
-import { mockPerformance } from '../mocks/data';
+import { performanceService } from '../services';
+import { ConceptPerformance } from '../types';
 import { ChevronRight, ChevronDown, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -19,6 +20,11 @@ const getStatusColor = (status: string) => {
 export function Performance() {
   const navigate = useNavigate();
   const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({ 'c2': true });
+  const [performanceData, setPerformanceData] = useState<ConceptPerformance[]>([]);
+
+  useEffect(() => {
+    performanceService.getPerformanceData().then(setPerformanceData);
+  }, []);
 
   const toggleExpand = (id: string) => {
     setExpandedItems(prev => ({ ...prev, [id]: !prev[id] }));
@@ -65,7 +71,7 @@ export function Performance() {
         </div>
 
         <div className="space-y-4">
-          {mockPerformance.map((item) => (
+          {performanceData.map((item) => (
             <div key={item.id} className="border border-slate-100 rounded-xl overflow-hidden">
               <div 
                 className={`p-4 flex items-center justify-between hover:bg-slate-50 transition-colors ${item.children ? 'cursor-pointer' : ''}`}

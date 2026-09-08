@@ -4,7 +4,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ArrowRight, Minus, Plus } from 'lucide-react';
 import { useStudySession } from '../context/StudySessionContext';
-import { mockQuestions } from '../mocks/data';
+import { studyService } from '../services';
 import { BoardType, QuestionType, StudyMode, StudySessionConfig, StudySession } from '../domain';
 
 export function StudyConfig() {
@@ -22,8 +22,9 @@ export function StudyConfig() {
   const [mode, setMode] = useState<StudyMode>(state?.mode || 'adaptive');
   const [concept, setConcept] = useState(state?.conceptId || 'c1');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleStartSession = () => {
+  const handleStartSession = async () => {
     setErrorMsg('');
     
     // 1. Validation
@@ -33,15 +34,15 @@ export function StudyConfig() {
     }
 
     // 2. Build Config
-    const selectedBoards: BoardType[] = board === 'Misturado' 
+    const selectedBoards = board === 'Misturado' 
       ? ['CEBRASPE', 'FGV', 'FCC'] 
-      : [board as BoardType];
-    
-    const selectedTypes: QuestionType[] = [];
+      : [board];
+      
+    const selectedTypes = [];
     if (formats.ce) selectedTypes.push('certo-errado');
     if (formats.me) selectedTypes.push('multipla-escolha');
 
-    const config: StudySessionConfig = {
+    const config = {
       materialIds: [material],
       boards: selectedBoards,
       questionTypes: selectedTypes,
@@ -50,35 +51,40 @@ export function StudyConfig() {
       conceptIds: mode === 'specific' ? [concept] : undefined,
     };
 
-    // 3. Select Questions based on config
-    let availableQuestions = mockQuestions.filter(q => 
-      config.boards.includes(q.board) && 
-      config.questionTypes.includes(q.type)
-    );
+    setIsLoading(true);
 
-    if (config.conceptIds && config.conceptIds.length > 0) {
-      availableQuestions = availableQuestions.filter(q => config.conceptIds?.includes(q.conceptId));
+    try {
+      const questionsForSession = await studyService.generateQuestionsForSession(config);
+
+      let availableQuestions = questionsForSession.filter(q => 
+        config.questionTypes.includes(q.type)
+      );
+
+      if (availableQuestions.length === 0) {
+        setErrorMsg('Nenhuma questão encontrada com estes filtros. Tente misturar as bancas ou formatos.');
+        setIsLoading(false);
+        return;
+      }
+
+      const questionIds = availableQuestions.map(q => q.id).slice(0, quantity);
+
+      // 4. Create Session
+      const session = {
+        id: `sess_${Date.now()}`,
+        config,
+        questionIds,
+        currentQuestionIndex: 0,
+        startedAt: new Date(),
+        status: 'active' as const
+      };
+
+      startSession(session);
+      navigate('/sessao');
+    } catch (e) {
+      setErrorMsg('Erro ao gerar a sessão.');
+    } finally {
+      setIsLoading(false);
     }
-
-    if (availableQuestions.length === 0) {
-      setErrorMsg('Nenhuma questão encontrada com estes filtros. Tente misturar as bancas ou formatos.');
-      return;
-    }
-
-    const questionIds = availableQuestions.map(q => q.id).slice(0, quantity);
-
-    // 4. Create Session
-    const session: StudySession = {
-      id: `sess_${Date.now()}`,
-      config,
-      questionIds,
-      currentQuestionIndex: 0,
-      startedAt: new Date(),
-      status: 'active'
-    };
-
-    startSession(session);
-    navigate('/sessao');
   };
 
   return (
@@ -245,8 +251,8 @@ export function StudyConfig() {
         </div>
 
         <div className="pt-4">
-          <Button size="lg" className="w-full flex items-center justify-center gap-2" onClick={handleStartSession}>
-            <span>Começar sessão</span>
+          <Button size="lg" className="w-full flex items-center justify-center gap-2" onClick={handleStartSession} disabled={isLoading}>
+            <span>{isLoading ? 'Gerando...' : 'Começar sessão'}</span>
             <ArrowRight className="w-5 h-5" />
           </Button>
         </div>

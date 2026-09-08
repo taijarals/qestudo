@@ -1,7 +1,9 @@
 import React from 'react';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
-import { mockErrors } from '../mocks/data';
+import { performanceService } from '../services';
+import { ErrorRecord } from '../types';
+import { useState, useEffect } from 'react';
 import { Cloud, Database, ExternalLink } from 'lucide-react';
 
 const icons: Record<string, React.ReactNode> = {
@@ -10,6 +12,12 @@ const icons: Record<string, React.ReactNode> = {
 };
 
 export function ErrorNotebook() {
+  const [errorRecords, setErrorRecords] = useState<ErrorRecord[]>([]);
+
+  useEffect(() => {
+    performanceService.getErrorRecords().then(setErrorRecords);
+  }, []);
+
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-8">
       <header>
@@ -23,7 +31,7 @@ export function ErrorNotebook() {
       </div>
 
       <div className="space-y-6">
-        {mockErrors.map((errorGroup) => (
+        {errorRecords.map((errorGroup) => (
           <Card key={errorGroup.id} className="overflow-hidden">
             <div className="p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-4">

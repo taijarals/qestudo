@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CircularProgress } from '../components/ui/CircularProgress';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ProgressBar } from '../components/ui/ProgressBar';
-import { mockMaterials } from '../mocks/data';
+import { materialService } from '../services';
+import { Material } from '../domain';
 import { Target, CheckCircle2, Calendar, AlertTriangle, ArrowRight, Cloud, Database, FileText } from 'lucide-react';
 
 const icons: Record<string, React.ReactNode> = {
@@ -15,6 +16,11 @@ const icons: Record<string, React.ReactNode> = {
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const [materials, setMaterials] = useState<Material[]>([]);
+
+  useEffect(() => {
+    materialService.getMaterials().then(setMaterials);
+  }, []);
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
@@ -77,7 +83,7 @@ export function Dashboard() {
             <button onClick={() => navigate('/materiais')} className="text-blue-600 text-sm font-medium hover:underline">Ver todos</button>
           </div>
           <div className="space-y-4">
-            {mockMaterials.filter(m => m.status === 'ready').slice(0, 3).map((material) => (
+            {materials.filter(m => m.status === 'ready').slice(0, 3).map((material) => (
               <Card key={material.id} className="p-4 flex items-center gap-4 hover:border-blue-200 transition-colors cursor-pointer" onClick={() => navigate('/materiais')}>
                 <div className="w-12 h-12 bg-slate-50 rounded-lg flex items-center justify-center shrink-0">
                   {icons[material.fileName] || <FileText className="w-6 h-6 text-slate-500" />}

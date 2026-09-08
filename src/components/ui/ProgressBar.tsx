@@ -1,7 +1,9 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 
-interface ProgressBarProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface ProgressBarProps {
+  children?: React.ReactNode;
+  className?: string;
   value: number;
   colorClass?: string;
   bgColorClass?: string;

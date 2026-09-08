@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { mockQuestions } from '../mocks/data';
+import { studyService } from '../services';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
 import { ProgressBar } from '../components/ui/ProgressBar';
@@ -9,6 +9,7 @@ import { ArrowLeft, ArrowRight, XCircle, CheckCircle, AlertTriangle, HelpCircle 
 import { cn } from '../lib/utils';
 import { useStudySession } from '../context/StudySessionContext';
 import { useStudyEngine } from '../hooks/useStudyEngine';
+import { Question } from '../domain';
 
 export function StudySession() {
   const navigate = useNavigate();
@@ -25,16 +26,16 @@ export function StudySession() {
 
   const currentIndex = activeSession.currentQuestionIndex;
   const currentQuestionId = activeSession.questionIds[currentIndex];
-  const question = mockQuestions.find(q => q.id === currentQuestionId);
+  const [question, setQuestion] = useState<Question | null>(null);
 
-  // Fallback in case a mock ID wasn't found
+  useEffect(() => {
+    if (currentQuestionId) {
+      studyService.getQuestionById(currentQuestionId).then(q => setQuestion(q || null));
+    }
+  }, [currentQuestionId]);
+
   if (!question) {
-    return (
-      <div className="p-8 text-center">
-        <h2 className="text-xl font-bold mb-4">Erro ao carregar a questão</h2>
-        <Button onClick={() => navigate('/estudar')}>Voltar</Button>
-      </div>
-    );
+    return <div className="p-8 text-center text-slate-500">Carregando questão...</div>;
   }
 
   const { 

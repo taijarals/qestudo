@@ -1,8 +1,12 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 
-interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface BadgeProps {
+  children?: React.ReactNode;
+  className?: string;
   variant?: 'default' | 'success' | 'warning' | 'danger' | 'outline' | 'blue';
+  onClick?: React.MouseEventHandler<HTMLDivElement> | (() => void) | any;
+  key?: React.Key | string | number;
 }
 
 export function Badge({ className, variant = 'default', ...props }: BadgeProps) {

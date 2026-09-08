@@ -6,21 +6,10 @@ import { Button } from '../components/ui/Button';
 import { CircularProgress } from '../components/ui/CircularProgress';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { Badge } from '../components/ui/Badge';
-import { mockQuestions, mockPerformance } from '../mocks/data';
+import { studyService, performanceService } from '../services';
+import { Question, Concept } from '../domain';
+import { useState, useEffect } from 'react';
 import { CheckCircle2, XCircle, HelpCircle, ArrowRight, Clock, Target, RotateCcw, AlertTriangle } from 'lucide-react';
-
-const getConceptName = (conceptId: string) => {
-  const findName = (items: any[]): string | undefined => {
-    for (const item of items) {
-      if (item.id === conceptId) return item.name;
-      if (item.children) {
-        const found = findName(item.children);
-        if (found) return found;
-      }
-    }
-  };
-  return findName(mockPerformance) || (conceptId === 'c_bd1' ? 'Transações (ACID)' : `Conceito ${conceptId}`);
-};
 
 const formatQuestionType = (type: string) => {
   return type === 'certo-errado' ? 'Certo/Errado' : 'Múltipla Escolha';
@@ -30,6 +19,33 @@ export function SessionResult() {
   const navigate = useNavigate();
   const { activeSession, answers, endSession, startSession } = useStudySession();
 
+  const [questionsMap, setQuestionsMap] = useState<Record<string, Question>>({});
+  const [conceptsMap, setConceptsMap] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!activeSession && answers.length === 0) return;
+
+    const loadData = async () => {
+      const qMap: Record<string, Question> = {};
+      
+      // Fetch all questions answered
+      const promises = answers.map(async ans => {
+        const q = await studyService.getQuestionById(ans.questionId);
+        if (q) qMap[q.id] = q;
+      });
+
+      await Promise.all(promises);
+      setQuestionsMap(qMap);
+
+      // We'd ideally fetch concepts from materialService but for now let's just 
+      // rely on a basic mock fallback or if we had a concept service.
+      setIsLoading(false);
+    };
+
+    loadData();
+  }, [answers, activeSession]);
+
   if (!activeSession && answers.length === 0) {
     return (
       <div className="p-8 text-center space-y-4">
@@ -38,6 +54,8 @@ export function SessionResult() {
       </div>
     );
   }
+
+  if (isLoading) return <div className="p-8 text-center">Carregando resultados...</div>;
 
   const total = answers.length;
   const correct = answers.filter(a => a.isCorrect).length;
@@ -61,7 +79,7 @@ export function SessionResult() {
   const conceptStats: Record<string, { total: number; correct: number; wrong: number }> = {};
 
   answers.forEach(ans => {
-    const q = mockQuestions.find(mq => mq.id === ans.questionId);
+    const q = questionsMap[ans.questionId];
     if (!q) return;
 
     boardStats[q.board] = (boardStats[q.board] || 0) + 1;
@@ -165,7 +183,7 @@ export function SessionResult() {
                   <div key={conceptId} className="flex items-center gap-4">
                     <div className="flex-1">
                       <div className="flex justify-between mb-2">
-                        <span className="font-medium text-slate-700">{getConceptName(conceptId)}</span>
+                        <span className="font-medium text-slate-700">{(conceptId === 'c_bd1' ? 'Transações (ACID)' : `Conceito ${conceptId}`)}</span>
                         <span className="text-sm text-slate-500">{stats.correct} de {stats.total} questões</span>
                       </div>
                       <ProgressBar value={conceptScore} colorClass={conceptScore >= 70 ? 'bg-green-500' : conceptScore >= 50 ? 'bg-amber-400' : 'bg-red-500'} />
@@ -217,7 +235,7 @@ export function SessionResult() {
               <ul className="space-y-3">
                 {conceptsToReview.map(([conceptId, stats]) => (
                   <li key={conceptId} className="text-sm font-medium text-orange-800 flex items-center justify-between">
-                    <span className="flex-1 pr-4">{getConceptName(conceptId)}</span>
+                    <span className="flex-1 pr-4">{(conceptId === 'c_bd1' ? 'Transações (ACID)' : `Conceito ${conceptId}`)}</span>
                     <Badge variant="warning" className="shrink-0">{stats.wrong} erros</Badge>
                   </li>
                 ))}

@@ -1,8 +1,13 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success';
+export interface ButtonProps {
+  children?: React.ReactNode;
+  className?: string;
+  onClick?: React.MouseEventHandler<HTMLButtonElement> | (() => void) | any;
+  disabled?: boolean;
+  type?: "button" | "submit" | "reset";
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' | 'warning';
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -18,6 +23,7 @@ export function Button({ className, variant = 'primary', size = 'md', ...props }
           'bg-transparent hover:bg-slate-100 text-slate-700': variant === 'ghost',
           'bg-red-50 text-red-600 hover:bg-red-100': variant === 'danger',
           'bg-green-500 text-white hover:bg-green-600': variant === 'success',
+          'bg-orange-500 text-white hover:bg-orange-600': variant === 'warning',
           'h-8 px-3 text-sm': size === 'sm',
           'h-10 px-4 py-2': size === 'md',
           'h-12 px-8 text-lg': size === 'lg',

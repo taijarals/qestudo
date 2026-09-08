@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
-import { mockMaterials, mockDomainConcepts, mockDomainMasteries, mockQuestions } from '../mocks/data';
+import { materialService } from '../services';
 import { ArrowLeft, ChevronDown, ChevronRight, FileText, Target, BookOpen, FileQuestion, GraduationCap } from 'lucide-react';
-import { Concept, ConceptMastery } from '../domain';
+import { Concept, ConceptMastery, Material, Question } from '../domain';
 import { cn } from '../lib/utils';
 
 interface ConceptNode {
@@ -26,7 +26,35 @@ export function MaterialDetails() {
     'c3': true
   });
 
-  const material = mockMaterials.find(m => m.id === materialId);
+  const [material, setMaterial] = useState<Material | undefined>();
+  const [concepts, setConcepts] = useState<Concept[]>([]);
+  const [masteries, setMasteries] = useState<ConceptMastery[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!materialId) return;
+
+    const loadData = async () => {
+      setLoading(true);
+      const m = await materialService.getMaterialById(materialId);
+      const c = await materialService.getMaterialConcepts(materialId);
+      const mats = await materialService.getMaterialMasteries();
+      const qts = await materialService.getQuestionsByMaterial(materialId);
+      
+      setMaterial(m);
+      setConcepts(c);
+      setMasteries(mats);
+      setQuestions(qts);
+      setLoading(false);
+    };
+
+    loadData();
+  }, [materialId]);
+
+  if (loading) {
+    return <div className="p-8 text-center text-slate-500">Carregando...</div>;
+  }
 
   if (!material) {
     return (
@@ -37,15 +65,11 @@ export function MaterialDetails() {
     );
   }
 
-  // Build concept tree
-  const concepts = mockDomainConcepts.filter(c => c.materialId === materialId);
-  const masteries = mockDomainMasteries;
-  
   // Calculate question count per concept
   const questionCountByConcept: Record<string, number> = {};
   concepts.forEach(c => {
     // Just a mock logic: if we don't have real questions, let's derive a number or use real mock questions
-    const count = mockQuestions.filter(q => q.conceptId === c.id).length;
+    const count = questions.filter(q => q.conceptId === c.id).length;
     // To make the UI look rich, we'll fallback to a pseudo-random number if count is 0
     questionCountByConcept[c.id] = count > 0 ? count : (c.name.length * 2);
   });

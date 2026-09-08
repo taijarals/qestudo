@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
-import { mockMaterials } from '../mocks/data';
+import { materialService } from '../services';
+import { Material } from '../domain';
 import { Upload, Cloud, Database, FileText, FileBadge } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,6 +18,11 @@ const getIcon = (title: string) => {
 export function Materials() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'todos' | 'processamento' | 'concluidos'>('todos');
+  const [materials, setMaterials] = useState<Material[]>([]);
+
+  useEffect(() => {
+    materialService.getMaterials().then(setMaterials);
+  }, []);
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
@@ -36,24 +42,24 @@ export function Materials() {
           onClick={() => setActiveTab('todos')}
           className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'todos' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
-          Todos ({mockMaterials.length})
+          Todos ({materials.length})
         </button>
         <button
           onClick={() => setActiveTab('processamento')}
           className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'processamento' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
-          Em processamento (1)
+          Em processamento ({materials.filter(m => m.status !== 'ready').length})
         </button>
         <button
           onClick={() => setActiveTab('concluidos')}
           className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'concluidos' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
-          Concluídos (5)
+          Concluídos ({materials.filter(m => m.status === 'ready').length})
         </button>
       </div>
 
       <div className="space-y-4">
-        {mockMaterials.map((material) => (
+        {materials.map((material) => (
           <Card key={material.id} className="p-6 flex flex-col sm:flex-row sm:items-center gap-6">
             <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center shrink-0">
               {getIcon(material.title)}
