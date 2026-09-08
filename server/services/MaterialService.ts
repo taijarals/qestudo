@@ -5,4 +5,6 @@ export const MaterialService = {
   getById: (id: string) => MaterialRepository.findById(id),
   getConcepts: (id: string) => MaterialRepository.findConcepts(id),
   getQuestions: (id: string) => MaterialRepository.findQuestions(id),
+  create: (data: any) => MaterialRepository.create(data),
+  delete: (id: string) => MaterialRepository.delete(id)
 };

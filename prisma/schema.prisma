@@ -10,10 +10,19 @@ datasource db {
 }
 
 model Material {
-  id          String @id @default(uuid())
-  title       String
-  description String
-  progress    Int    @default(0)
+  id                 String    @id @default(uuid())
+  title              String
+  description        String
+  progress           Int       @default(0)
+  fileName           String?
+  storagePath        String?
+  fileSize           Int?
+  mimeType           String?
+  status             String    @default("active")
+  processingProgress Int       @default(0)
+  uploadedAt         DateTime?
+  pageCount          Int?
+  processingError    String?
 
   concepts  Concept[]
   questions Question[]
@@ -38,22 +47,23 @@ model Concept {
 }
 
 model Question {
-  id                   String  @id @default(uuid())
-  text                 String
-  type                 String // e.g., 'certo-errado', 'multipla-escolha'
-  board                String
-  year                 Int
-  difficulty           String
-  conceptualDifficulty String?
-  materialId           String
-  conceptId            String
-
-  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
-  concept  Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
-
-  options          QuestionOption[]
-  sourceReferences QuestionSourceReference[]
-  answers          Answer[]
+  id                 String                    @id @default(uuid())
+  statement          String
+  type               String
+  board              String
+  difficulty         String
+  cognitiveObjective String?
+  explanation        String?
+  trapType           String?
+  confidenceScore    Float?
+  validationStatus   String                    @default("validated")
+  materialId         String
+  conceptId          String
+  material           Material                  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  concept            Concept                   @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  options            QuestionOption[]
+  sourceReferences   QuestionSourceReference[]
+  answers            Answer[]
 
   @@schema("qestudo")
 }
@@ -70,11 +80,13 @@ model QuestionOption {
 }
 
 model QuestionSourceReference {
-  id         String @id @default(uuid())
+  id         String   @id @default(uuid())
   questionId String
-  text       String
-
-  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  materialId String?
+  page       Int?
+  excerpt    String
+  chunkId    String?
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@schema("qestudo")
 }
@@ -115,14 +127,13 @@ model Answer {
 }
 
 model ConceptMastery {
-  id                String    @id @default(uuid())
-  conceptId         String    @unique
-  masteryLevel      Int
-  questionsAnswered Int       @default(0)
-  correctAnswers    Int       @default(0)
-  lastReview        DateTime?
-
-  concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  id             String  @id @default(uuid())
+  conceptId      String  @unique
+  masteryScore   Float
+  status         String
+  correctAnswers Int     @default(0)
+  wrongAnswers   Int     @default(0)
+  concept        Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
 
   @@schema("qestudo")
 }

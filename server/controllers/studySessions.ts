@@ -12,7 +12,7 @@ export const studySessionController = {
   },
   update: async (req: Request, res: Response) => {
     try {
-      const data = await StudySessionService.update(req.params.id, req.body);
+      const data = await StudySessionService.update(req.params.id as string, req.body);
       res.json(data);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -20,7 +20,7 @@ export const studySessionController = {
   },
   getAnswers: async (req: Request, res: Response) => {
     try {
-      const data = await StudySessionService.getAnswers(req.params.id);
+      const data = await StudySessionService.getAnswers(req.params.id as string);
       res.json(data);
     } catch (e: any) {
       res.status(500).json({ error: e.message });

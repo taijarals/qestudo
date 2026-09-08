@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import multer from 'multer';
 import { materialController } from '../controllers/materials';
 import { questionController } from '../controllers/questions';
 import { studySessionController } from '../controllers/studySessions';
@@ -6,7 +7,13 @@ import { conceptController } from '../controllers/concepts';
 
 export const apiRouter = Router();
 
+const upload = multer({ 
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB
+});
+
 // Materials
+apiRouter.post('/materials/upload', upload.single('file'), materialController.upload);
 apiRouter.get('/materials', materialController.getAll);
 apiRouter.get('/materials/:id', materialController.getById);
 apiRouter.get('/materials/:id/concepts', materialController.getConcepts);

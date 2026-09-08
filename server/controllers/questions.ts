@@ -4,7 +4,7 @@ import { QuestionService } from '../services/QuestionService';
 export const questionController = {
   getById: async (req: Request, res: Response) => {
     try {
-      const data = await QuestionService.getById(req.params.id);
+      const data = await QuestionService.getById(req.params.id as string);
       if (!data) return res.status(404).json({ error: 'Not found' });
       res.json(data);
     } catch (e: any) {

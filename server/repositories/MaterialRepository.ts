@@ -8,4 +8,6 @@ export const MaterialRepository = {
     where: { materialId: id },
     include: { options: true, sourceReferences: true }
   }),
+  create: (data: any) => prisma.material.create({ data }),
+  delete: (id: string) => prisma.material.delete({ where: { id } })
 };

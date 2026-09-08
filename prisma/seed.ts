@@ -19,8 +19,11 @@ async function main() {
       create: {
         id: m.id,
         title: m.title,
-        description: m.description,
-        progress: m.progress,
+        description: '',
+        progress: m.studyCoverage || 0,
+        fileName: m.fileName,
+        status: m.status,
+        processingProgress: m.processingProgress,
       }
     });
   }
@@ -55,12 +58,17 @@ async function main() {
       update: {},
       create: {
         id: q.id,
-        text: q.text,
+        statement: q.statement || "",
+        explanation: q.explanation,
+        cognitiveObjective: q.cognitiveObjective,
+        trapType: q.trapType,
+        confidenceScore: q.confidenceScore,
+        validationStatus: q.validationStatus || "validated",
         type: q.type,
         board: q.board,
-        year: q.year,
+        
         difficulty: q.difficulty,
-        conceptualDifficulty: 'Medium', // fallback
+        
         materialId: q.materialId,
         conceptId: q.conceptId,
         options: {
@@ -72,8 +80,8 @@ async function main() {
         },
         sourceReferences: {
           create: q.sourceReferences?.map(sr => ({
-            id: sr.id,
-            text: sr.text
+            
+            materialId: sr.materialId, page: sr.page || 0, excerpt: sr.excerpt || "", chunkId: sr.chunkId
           })) || []
         }
       }
@@ -86,12 +94,8 @@ async function main() {
       where: { conceptId: m.conceptId },
       update: {},
       create: {
-        id: m.id,
         conceptId: m.conceptId,
-        masteryLevel: m.masteryLevel,
-        questionsAnswered: m.questionsAnswered,
-        correctAnswers: m.correctAnswers,
-        lastReview: m.lastReview
+        masteryScore: m.masteryScore || 0, status: m.status, correctAnswers: m.correctAnswers, wrongAnswers: m.wrongAnswers
       }
     });
   }
