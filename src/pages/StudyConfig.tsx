@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ArrowRight, Minus, Plus } from 'lucide-react';
@@ -9,15 +9,18 @@ import { BoardType, QuestionType, StudyMode, StudySessionConfig, StudySession } 
 
 export function StudyConfig() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { startSession } = useStudySession();
 
+  const state = location.state as any;
+
   const [subject, setSubject] = useState('Cloud Computing');
-  const [material, setMaterial] = useState('1'); // Mock ID
+  const [material, setMaterial] = useState(state?.materialId || '1');
   const [board, setBoard] = useState<BoardType | 'Misturado'>('CEBRASPE');
   const [formats, setFormats] = useState({ ce: true, me: true });
   const [quantity, setQuantity] = useState(10);
-  const [mode, setMode] = useState<StudyMode>('adaptive');
-  const [concept, setConcept] = useState('c1');
+  const [mode, setMode] = useState<StudyMode>(state?.mode || 'adaptive');
+  const [concept, setConcept] = useState(state?.conceptId || 'c1');
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleStartSession = () => {

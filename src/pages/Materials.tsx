@@ -92,7 +92,7 @@ export function Materials() {
               {material.status === 'ready' ? (
                 <>
                   <Button onClick={() => navigate('/estudar')} className="w-full sm:w-32">Estudar</Button>
-                  <Button variant="outline" className="w-full sm:w-32">Ver conteúdo</Button>
+                  <Button variant="outline" className="w-full sm:w-32" onClick={() => navigate(`/materiais/${material.id}`)}>Ver conteúdo</Button>
                 </>
               ) : (
                 <>

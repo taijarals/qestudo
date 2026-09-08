@@ -1,4 +1,4 @@
-import { Material, Question, ConceptMastery } from '../domain';
+import { Material, Question, Concept, ConceptMastery } from '../domain';
 import { ConceptPerformance, ErrorRecord } from '../types';
 
 export const mockMaterials: Material[] = [
@@ -46,6 +46,40 @@ export const mockMaterials: Material[] = [
     questionCount: 0,
     masteryScore: null,
   },
+];
+
+export const mockDomainConcepts: Concept[] = [
+  { id: 'c1', materialId: '1', name: 'Características essenciais', description: '', level: 1, relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c1-1', materialId: '1', parentId: 'c1', name: 'Elasticidade', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c1-2', materialId: '1', parentId: 'c1', name: 'Resource Pooling', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c1-3', materialId: '1', parentId: 'c1', name: 'Measured Service', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
+  
+  { id: 'c2', materialId: '1', name: 'Modelos de serviço', description: '', level: 1, relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c2-1', materialId: '1', parentId: 'c2', name: 'IaaS', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c2-2', materialId: '1', parentId: 'c2', name: 'PaaS', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c2-3', materialId: '1', parentId: 'c2', name: 'SaaS', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
+
+  { id: 'c3', materialId: '1', name: 'Modelos de implantação', description: '', level: 1, relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c3-1', materialId: '1', parentId: 'c3', name: 'Pública', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c3-2', materialId: '1', parentId: 'c3', name: 'Privada', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c3-3', materialId: '1', parentId: 'c3', name: 'Híbrida', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
+];
+
+export const mockDomainMasteries: ConceptMastery[] = [
+  { conceptId: 'c1', masteryScore: 52, status: 'learning', correctAnswers: 20, wrongAnswers: 12 },
+  { conceptId: 'c1-1', masteryScore: 33, status: 'review_needed', correctAnswers: 3, wrongAnswers: 8 },
+  { conceptId: 'c1-2', masteryScore: 68, status: 'consolidating', correctAnswers: 12, wrongAnswers: 2 },
+  { conceptId: 'c1-3', masteryScore: 75, status: 'consolidating', correctAnswers: 5, wrongAnswers: 2 },
+
+  { conceptId: 'c2', masteryScore: 82, status: 'mastered', correctAnswers: 50, wrongAnswers: 5 },
+  { conceptId: 'c2-1', masteryScore: 100, status: 'mastered', correctAnswers: 25, wrongAnswers: 0 },
+  { conceptId: 'c2-2', masteryScore: 50, status: 'learning', correctAnswers: 10, wrongAnswers: 5 },
+  { conceptId: 'c2-3', masteryScore: 94, status: 'mastered', correctAnswers: 15, wrongAnswers: 0 },
+
+  { conceptId: 'c3', masteryScore: 40, status: 'review_needed', correctAnswers: 8, wrongAnswers: 15 },
+  { conceptId: 'c3-1', masteryScore: 60, status: 'learning', correctAnswers: 4, wrongAnswers: 2 },
+  { conceptId: 'c3-2', masteryScore: 20, status: 'review_needed', correctAnswers: 1, wrongAnswers: 5 },
+  { conceptId: 'c3-3', masteryScore: 35, status: 'review_needed', correctAnswers: 3, wrongAnswers: 8 },
 ];
 
 export const mockQuestions: Question[] = [

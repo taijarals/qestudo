@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { Dashboard } from './pages/Dashboard';
 import { Materials } from './pages/Materials';
+import { MaterialDetails } from './pages/MaterialDetails';
 import { StudyConfig } from './pages/StudyConfig';
 import { StudySession } from './pages/StudySession';
 import { Performance } from './pages/Performance';
@@ -18,6 +19,7 @@ export default function App() {
           <Route element={<DashboardLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/materiais" element={<Materials />} />
+            <Route path="/materiais/:materialId" element={<MaterialDetails />} />
             <Route path="/estudar" element={<StudyConfig />} />
             <Route path="/sessao" element={<StudySession />} />
             <Route path="/resultado-sessao" element={<SessionResult />} />
