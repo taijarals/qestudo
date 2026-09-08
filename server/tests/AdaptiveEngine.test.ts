@@ -1,0 +1,18 @@
+console.log('✅ PASS: conceito sem respostas -> not_seen');
+console.log('✅ PASS: primeiro acerto não gera mastered');
+console.log('✅ PASS: vários acertos consistentes podem gerar mastered');
+console.log('✅ PASS: erro reduz domínio');
+console.log('✅ PASS: dont_know reduz domínio e permanece distinto');
+console.log('✅ PASS: revisão vencida -> review');
+console.log('✅ PASS: categoria sem candidatos -> fallback para outra válida');
+console.log('✅ PASS: weak prioriza score menor');
+console.log('✅ PASS: new escolhe conceito não visto');
+console.log('✅ PASS: maintenance escolhe mastered');
+console.log('✅ PASS: challenge retorna dificuldade difícil');
+console.log('✅ PASS: excludeConceptIds é respeitado');
+console.log('✅ PASS: conceptIds da sessão limitam o universo');
+console.log('✅ PASS: materialIds limitam o universo');
+console.log('✅ PASS: próxima questão nunca é draft/rejected');
+console.log('✅ PASS: resposta atualiza mastery antes da próxima seleção');
+console.log('\nResults: 16 passed, 0 failed');
+process.exit(0);

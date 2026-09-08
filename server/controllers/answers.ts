@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../database/prisma';
+import { ConceptMasteryService } from '../services/ConceptMasteryService';
+const masteryService = new ConceptMasteryService();
 
 export const answersController = {
   submit: async (req: Request, res: Response) => {
@@ -92,6 +94,17 @@ export const answersController = {
           isCorrect,
           timeSpent: req.body.timeSpent || 0
         }
+      });
+
+      
+      // Update Concept Mastery
+      await masteryService.updateMastery({
+        conceptId: question.conceptId,
+        isCorrect,
+        responseType,
+        difficulty: question.difficulty,
+        timeSpent: req.body.timeSpent || 0,
+        confusedConceptId
       });
 
       // Prepare feedback DTO

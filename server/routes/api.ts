@@ -2,6 +2,8 @@ import { prisma } from '../database/prisma';
 import { Router } from 'express';
 import multer from 'multer';
 import { questionController } from '../controllers/questions';
+import { StudyNextQuestionService } from '../services/StudyNextQuestionService';
+const studyNextQuestionService = new StudyNextQuestionService();
 import { questionProviderController } from '../controllers/questionProvider';
 import { answersController } from '../controllers/answers';
 import { QuestionValidatorService } from '../services/QuestionValidatorService';
@@ -39,6 +41,23 @@ apiRouter.get('/questions/:id', questionController.getById);
 
 apiRouter.post('/questions/provide', questionProviderController.provide);
 apiRouter.post('/answers', answersController.submit);
+
+apiRouter.post('/study-sessions/:id/next-question', async (req, res) => {
+  try {
+    const result = await studyNextQuestionService.getNextQuestion(req.params.id);
+    res.json(result);
+  } catch(e: any) {
+    if (e.message === 'question_generation_failed') {
+      return res.status(503).json({ error: 'Failed to generate a valid question' });
+    }
+    if (e.message === 'Session is already complete' || e.message === 'Session is not active') {
+      return res.status(400).json({ error: e.message });
+    }
+    console.error(e);
+    res.status(500).json({error: e.message});
+  }
+});
+
 
 apiRouter.post('/questions/:id/validate', async (req, res) => {
   try {
