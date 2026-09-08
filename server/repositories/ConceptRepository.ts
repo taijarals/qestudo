@@ -2,7 +2,7 @@ import { prisma } from '../database/prisma';
 
 export const ConceptRepository = {
   findQuestions: (id: string) => prisma.question.findMany({ 
-    where: { conceptId: id },
+    where: { conceptId: id, validationStatus: 'validated' },
     include: { options: true, sourceReferences: true }
   }),
   getMastery: (id: string) => prisma.conceptMastery.findUnique({ where: { conceptId: id } }),

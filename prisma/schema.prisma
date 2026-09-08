@@ -71,7 +71,7 @@ model Question {
   explanation        String?
   trapType           String?
   confidenceScore    Float?
-  validationStatus   String                    @default("validated")
+  validationStatus   String                    @default("draft")
   materialId         String
   conceptId          String
   material           Material                  @relation(fields: [materialId], references: [id], onDelete: Cascade)
@@ -85,6 +85,8 @@ model Question {
   generationPromptVersion String?
   generationModel         String?
   generatedAt             DateTime?     @default(now())
+
+  validations QuestionValidation[]
 
   @@schema("qestudo")
 }
@@ -240,6 +242,34 @@ model QuestionPlan {
   confusedConcept Concept? @relation("ConfusedConceptPlans", fields: [confusedConceptId], references: [id], onDelete: SetNull)
 
   question Question?
+
+  @@schema("qestudo")
+}
+
+model QuestionValidation {
+  id                        String   @id @default(uuid())
+  questionId                String
+  validatorPromptVersion    String?
+  validatorModel            String?
+  confidenceScore           Float
+  isAnswerCorrect           Boolean
+  isSupportedBySource       Boolean
+  hasSecondDefensibleAnswer Boolean
+  isAmbiguous               Boolean
+  isExplanationCorrect      Boolean
+  isDifficultyAppropriate   Boolean
+  respectsBoardStyle        Boolean
+  respectsQuestionPlan      Boolean
+  distractorsPlausible      Boolean
+  usesExternalKnowledge     Boolean
+  sourceCoverageScore       Float
+  clarityScore              Float
+  qualityScore              Float
+  issues                    Json?
+  reasoningSummary          String?
+  createdAt                 DateTime @default(now())
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@schema("qestudo")
 }

@@ -1,6 +1,9 @@
+import { prisma } from '../database/prisma';
 import { Router } from 'express';
 import multer from 'multer';
 import { questionController } from '../controllers/questions';
+import { QuestionValidatorService } from '../services/QuestionValidatorService';
+const validatorService = new QuestionValidatorService();
 import { questionPlanController } from '../controllers/questionPlans';
 import { materialController } from '../controllers/materials';
 import { studySessionController } from '../controllers/studySessions';
@@ -30,6 +33,31 @@ apiRouter.get('/concepts/:id/question-plans', questionPlanController.getByConcep
 
 apiRouter.post('/question-plans/:planId/generate', questionController.generate);
 apiRouter.get('/questions/:id', questionController.getById);
+
+apiRouter.post('/questions/:id/validate', async (req, res) => {
+  try {
+    const result = await validatorService.validateQuestion(req.params.id);
+    res.json(result);
+  } catch(e: any) {
+    res.status(500).json({error: e.message});
+  }
+});
+
+apiRouter.get('/questions/:id/validation', async (req, res) => {
+  try {
+    const question = await prisma.question.findUnique({
+      where: { id: req.params.id as string },
+      include: {
+        validations: { orderBy: { createdAt: 'desc' }, take: 1 }
+      }
+    });
+    if (!question) return res.status(404).json({error: 'not found'});
+    res.json(question.validations[0] || null);
+  } catch(e: any) {
+    res.status(500).json({error: e.message});
+  }
+});
+
 
 
 apiRouter.get('/materials/:id/questions', materialController.getQuestions);

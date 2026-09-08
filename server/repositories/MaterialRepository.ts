@@ -5,7 +5,7 @@ export const MaterialRepository = {
   findById: (id: string) => prisma.material.findUnique({ where: { id } }),
   findConcepts: (id: string) => prisma.concept.findMany({ where: { materialId: id } }),
   findQuestions: (id: string) => prisma.question.findMany({ 
-    where: { materialId: id },
+    where: { materialId: id, validationStatus: 'validated' },
     include: { options: true, sourceReferences: true }
   }),
   create: (data: any) => prisma.material.create({ data }),
