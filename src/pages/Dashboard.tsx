@@ -77,18 +77,18 @@ export function Dashboard() {
             <button onClick={() => navigate('/materiais')} className="text-blue-600 text-sm font-medium hover:underline">Ver todos</button>
           </div>
           <div className="space-y-4">
-            {mockMaterials.filter(m => m.status === 'processado').slice(0, 3).map((material) => (
+            {mockMaterials.filter(m => m.status === 'ready').slice(0, 3).map((material) => (
               <Card key={material.id} className="p-4 flex items-center gap-4 hover:border-blue-200 transition-colors cursor-pointer" onClick={() => navigate('/materiais')}>
                 <div className="w-12 h-12 bg-slate-50 rounded-lg flex items-center justify-center shrink-0">
-                  {icons[material.title] || <FileText className="w-6 h-6 text-slate-500" />}
+                  {icons[material.fileName] || <FileText className="w-6 h-6 text-slate-500" />}
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-slate-900">{material.title.replace('.pdf', '')}</h4>
+                  <h4 className="font-semibold text-slate-900">{material.title}</h4>
                   <div className="flex items-center gap-4 mt-2">
                     <div className="flex-1">
-                      <ProgressBar value={material.domain || 0} colorClass={material.domain && material.domain < 40 ? 'bg-red-500' : 'bg-blue-600'} />
+                      <ProgressBar value={material.masteryScore || 0} colorClass={material.masteryScore && material.masteryScore < 40 ? 'bg-red-500' : 'bg-blue-600'} />
                     </div>
-                    <span className="text-sm font-medium text-slate-700 w-12 text-right">{material.domain}%</span>
+                    <span className="text-sm font-medium text-slate-700 w-12 text-right">{material.masteryScore}%</span>
                   </div>
                 </div>
                 <div className="text-right text-sm text-slate-500 shrink-0 w-32">

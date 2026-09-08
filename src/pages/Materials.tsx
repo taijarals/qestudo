@@ -61,9 +61,9 @@ export function Materials() {
             
             <div className="flex-1 space-y-3">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">{material.title}</h3>
+                <h3 className="text-lg font-bold text-slate-900">{material.fileName}</h3>
                 <div className="mt-2">
-                  {material.status === 'processado' ? (
+                  {material.status === 'ready' ? (
                     <Badge variant="success">Processado</Badge>
                   ) : (
                     <Badge variant="warning">Em processamento</Badge>
@@ -71,25 +71,25 @@ export function Materials() {
                 </div>
               </div>
 
-              {material.status === 'processado' && (
+              {material.status === 'ready' && (
                 <div className="flex items-center gap-4">
                   <div className="flex-1">
-                    <ProgressBar value={material.domain || 0} />
+                    <ProgressBar value={material.masteryScore || 0} />
                   </div>
-                  <span className="font-bold text-slate-900">{material.domain}%</span>
+                  <span className="font-bold text-slate-900">{material.masteryScore}%</span>
                 </div>
               )}
               
               <div className="text-sm text-slate-500 flex items-center gap-4">
                 <span>{material.conceptCount} conceitos</span>
                 <span>{material.questionCount} questões</span>
-                {material.domain !== null && <span>Domínio: {material.domain}%</span>}
-                {material.domain === null && <span>Domínio: --</span>}
+                {material.masteryScore !== null && <span>Domínio: {material.masteryScore}%</span>}
+                {material.masteryScore === null && <span>Domínio: --</span>}
               </div>
             </div>
 
             <div className="flex flex-row sm:flex-col gap-2 shrink-0">
-              {material.status === 'processado' ? (
+              {material.status === 'ready' ? (
                 <>
                   <Button onClick={() => navigate('/estudar')} className="w-full sm:w-32">Estudar</Button>
                   <Button variant="outline" className="w-full sm:w-32">Ver conteúdo</Button>

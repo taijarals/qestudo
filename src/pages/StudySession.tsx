@@ -15,7 +15,8 @@ export function StudySession() {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   
   const question = mockQuestions[currentIndex];
-  const isCorrect = selectedOption === question.correctAnswerId;
+  const correctAnswerId = question.options.find(o => o.isCorrect)?.id;
+  const isCorrect = selectedOption === correctAnswerId;
 
   const handleConfirm = () => {
     if (selectedOption) setStatus('correction');
@@ -50,12 +51,12 @@ export function StudySession() {
       <div className="flex-1 overflow-y-auto px-8 py-8 pb-32">
         <div className="flex flex-wrap gap-2 mb-8">
           <Badge variant="outline">{question.board}</Badge>
-          <Badge variant="blue">{question.subject}</Badge>
+          <Badge variant="blue">Cloud Computing</Badge>
           <Badge variant="warning">Dificuldade: {question.difficulty}</Badge>
         </div>
 
         <div className="prose prose-slate max-w-none mb-10">
-          <p className="text-xl leading-relaxed text-slate-800">{question.text}</p>
+          <p className="text-xl leading-relaxed text-slate-800">{question.statement}</p>
         </div>
 
         {/* Options */}
@@ -72,7 +73,7 @@ export function StudySession() {
                     selectedOption === opt.id
                       ? 'border-blue-600 bg-blue-50 text-blue-700'
                       : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
-                    status === 'correction' && opt.id === question.correctAnswerId && 'border-green-500 bg-green-50 text-green-700',
+                    status === 'correction' && opt.isCorrect && 'border-green-500 bg-green-50 text-green-700',
                     status === 'correction' && selectedOption === opt.id && !isCorrect && 'border-red-500 bg-red-50 text-red-700'
                   )}
                 >
@@ -82,7 +83,7 @@ export function StudySession() {
             </div>
           ) : (
             <div className="space-y-3">
-              {question.options?.map((opt) => (
+              {question.options?.map((opt: any) => (
                 <button
                   key={opt.id}
                   onClick={() => status === 'answering' && setSelectedOption(opt.id)}
@@ -92,14 +93,14 @@ export function StudySession() {
                     selectedOption === opt.id
                       ? 'border-blue-600 bg-blue-50 text-blue-900'
                       : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300',
-                    status === 'correction' && opt.id === question.correctAnswerId && 'border-green-500 bg-green-50 text-green-900',
+                    status === 'correction' && opt.isCorrect && 'border-green-500 bg-green-50 text-green-900',
                     status === 'correction' && selectedOption === opt.id && !isCorrect && 'border-red-500 bg-red-50 text-red-900'
                   )}
                 >
                   <div className={cn(
                     'w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shrink-0',
                     selectedOption === opt.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500',
-                    status === 'correction' && opt.id === question.correctAnswerId && 'bg-green-500 text-white',
+                    status === 'correction' && opt.isCorrect && 'bg-green-500 text-white',
                     status === 'correction' && selectedOption === opt.id && !isCorrect && 'bg-red-500 text-white'
                   )}>
                     {opt.letter}
@@ -127,14 +128,14 @@ export function StudySession() {
                   <div>
                     <span className="text-sm uppercase tracking-wider font-semibold opacity-70">Resposta correta</span>
                     <p className="text-lg font-bold mt-1">
-                      {question.options?.find(o => o.id === question.correctAnswerId)?.letter || question.options?.find(o => o.id === question.correctAnswerId)?.text}
+                      {(question.options?.find(o => o.isCorrect) as any)?.letter || question.options?.find(o => o.isCorrect)?.text}
                     </p>
                   </div>
                   {!isCorrect && (
                     <div>
                       <span className="text-sm uppercase tracking-wider font-semibold opacity-70">Sua resposta</span>
                       <p className="text-lg font-bold mt-1">
-                        {question.options?.find(o => o.id === selectedOption)?.letter || question.options?.find(o => o.id === selectedOption)?.text}
+                        {(question.options?.find(o => o.id === selectedOption) as any)?.letter || question.options?.find(o => o.id === selectedOption)?.text}
                       </p>
                     </div>
                   )}
@@ -148,29 +149,23 @@ export function StudySession() {
                 <p className="text-slate-700 leading-relaxed">{question.explanation}</p>
               </div>
 
-              {question.catch && (
+              {question.trapType && (
                 <div className="flex items-start gap-3 p-4 bg-orange-50 rounded-xl border border-orange-100">
                   <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0 mt-0.5" />
                   <div>
                     <h5 className="font-bold text-orange-900">Pegadinha</h5>
-                    <p className="text-orange-800 text-sm mt-1">{question.catch}</p>
+                    <p className="text-orange-800 text-sm mt-1">{question.trapType}</p>
                   </div>
                 </div>
               )}
 
-              {question.conceptualDifficulty && !isCorrect && (
-                <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100">
-                  <HelpCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                  <div>
-                    <h5 className="font-bold text-amber-900">Sua dificuldade</h5>
-                    <p className="text-amber-800 text-sm mt-1">{question.conceptualDifficulty}</p>
-                  </div>
-                </div>
-              )}
+              {/* conceptualDifficulty mock removed as it wasn't requested in domain model */}
 
               <div>
                 <h5 className="text-sm font-semibold text-slate-900 mb-1">Fonte</h5>
-                <p className="text-sm text-slate-500">{question.source}</p>
+                <p className="text-sm text-slate-500">
+                  Material {question.sourceReferences[0]?.materialId} • Página {question.sourceReferences[0]?.page}
+                </p>
               </div>
             </div>
             

@@ -1,29 +1,3 @@
-export interface Material {
-  id: string;
-  title: string;
-  status: 'processando' | 'processado' | 'erro';
-  progress: number;
-  conceptCount: number;
-  questionCount: number;
-  domain: number | null;
-  type: 'pdf' | 'video' | 'text';
-}
-
-export interface Question {
-  id: string;
-  board: string;
-  subject: string;
-  difficulty: 'fácil' | 'média' | 'difícil';
-  type: 'certo-errado' | 'multipla-escolha';
-  text: string;
-  options?: { id: string; letter: string; text: string }[];
-  correctAnswerId: string;
-  explanation: string;
-  catch?: string; // pegadinha
-  conceptualDifficulty?: string;
-  source: string;
-}
-
 export interface ConceptPerformance {
   id: string;
   name: string;

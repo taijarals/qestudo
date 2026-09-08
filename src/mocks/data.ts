@@ -1,85 +1,96 @@
-import { Material, Question, ConceptPerformance, ErrorRecord } from '../types';
+import { Material, Question, ConceptMastery } from '../domain';
+import { ConceptPerformance, ErrorRecord } from '../types';
 
 export const mockMaterials: Material[] = [
   {
     id: '1',
-    title: 'Cloud Computing - Aula 01.pdf',
-    status: 'processado',
-    progress: 76,
+    title: 'Cloud Computing - Aula 01',
+    fileName: 'Cloud Computing - Aula 01.pdf',
+    status: 'ready',
+    processingProgress: 100,
+    studyCoverage: 76,
     conceptCount: 42,
     questionCount: 118,
-    domain: 64,
-    type: 'pdf',
+    masteryScore: 64,
   },
   {
     id: '2',
-    title: 'Banco de Dados - Teoria.pdf',
-    status: 'processado',
-    progress: 62,
+    title: 'Banco de Dados - Teoria',
+    fileName: 'Banco de Dados - Teoria.pdf',
+    status: 'ready',
+    processingProgress: 100,
+    studyCoverage: 62,
     conceptCount: 38,
     questionCount: 96,
-    domain: 52,
-    type: 'pdf',
+    masteryScore: 52,
   },
   {
     id: '3',
-    title: 'Direito Administrativo.pdf',
-    status: 'processado',
-    progress: 48,
+    title: 'Direito Administrativo',
+    fileName: 'Direito Administrativo.pdf',
+    status: 'ready',
+    processingProgress: 100,
+    studyCoverage: 48,
     conceptCount: 31,
     questionCount: 74,
-    domain: 28,
-    type: 'pdf',
+    masteryScore: 28,
   },
   {
     id: '4',
-    title: 'Segurança da Informação.pdf',
-    status: 'processando',
-    progress: 15,
+    title: 'Segurança da Informação',
+    fileName: 'Segurança da Informação.pdf',
+    status: 'extracting',
+    processingProgress: 15,
+    studyCoverage: 0,
     conceptCount: 28,
     questionCount: 0,
-    domain: null,
-    type: 'pdf',
+    masteryScore: null,
   },
 ];
 
 export const mockQuestions: Question[] = [
   {
     id: 'q1',
+    materialId: '1',
+    conceptId: 'c1',
     board: 'CEBRASPE',
-    subject: 'Cloud Computing',
-    difficulty: 'média',
     type: 'certo-errado',
-    text: 'Em um ambiente de computação em nuvem, o cliente é responsável pela administração do sistema operacional em um serviço de PaaS (Platform as a Service).',
+    difficulty: 'media',
+    cognitiveObjective: 'Compreender a responsabilidade no modelo PaaS',
+    statement: 'Em um ambiente de computação em nuvem, o cliente é responsável pela administração do sistema operacional em um serviço de PaaS (Platform as a Service).',
     options: [
-      { id: 'certo', letter: 'C', text: 'CERTO' },
-      { id: 'errado', letter: 'E', text: 'ERRADO' },
-    ],
-    correctAnswerId: 'errado',
+      { id: 'certo', questionId: 'q1', position: 0, letter: 'C', text: 'CERTO', isCorrect: false },
+      { id: 'errado', questionId: 'q1', position: 1, letter: 'E', text: 'ERRADO', isCorrect: true },
+    ] as any, // casting to avoid adding letter property to domain model for now
     explanation: 'O modelo PaaS fornece um ambiente de execução para o desenvolvimento e implantação de aplicações, incluindo infraestrutura, sistema operacional, middleware e ferramentas de desenvolvimento. O cliente NÃO precisa se preocupar com a administração da infraestrutura subjacente, incluindo o sistema operacional.',
-    catch: 'A alternativa tenta confundir o modelo IaaS (onde o cliente gerencia o SO) com o modelo PaaS.',
-    conceptualDifficulty: 'Sua resposta indica possível confusão entre PaaS e IaaS.',
-    source: 'Cloud Computing - Aula 01.pdf • Página 17'
+    trapType: 'A alternativa tenta confundir o modelo IaaS (onde o cliente gerencia o SO) com o modelo PaaS.',
+    validationStatus: 'validated',
+    sourceReferences: [
+      { materialId: '1', page: 17, excerpt: 'O modelo PaaS fornece um ambiente de execução...' }
+    ]
   },
   {
     id: 'q2',
+    materialId: '1',
+    conceptId: 'c2',
     board: 'FGV',
-    subject: 'Cloud Computing',
-    difficulty: 'média',
     type: 'multipla-escolha',
-    text: 'Assinale a alternativa que descreve corretamente o modelo de serviço PaaS (Platform as a Service).',
+    difficulty: 'media',
+    cognitiveObjective: 'Identificar a definição correta do modelo PaaS',
+    statement: 'Assinale a alternativa que descreve corretamente o modelo de serviço PaaS (Platform as a Service).',
     options: [
-      { id: 'a', letter: 'A', text: 'Fornece apenas infraestrutura física para o cliente.' },
-      { id: 'b', letter: 'B', text: 'Disponibiliza aplicações completas aos usuários finais.' },
-      { id: 'c', letter: 'C', text: 'Exige que o cliente gerencie o sistema operacional.' },
-      { id: 'd', letter: 'D', text: 'Fornece um ambiente de execução para o desenvolvimento e implantação de aplicações.' },
-      { id: 'e', letter: 'E', text: 'É um modelo de implantação de nuvem.' },
-    ],
-    correctAnswerId: 'd',
+      { id: 'a', questionId: 'q2', position: 0, letter: 'A', text: 'Fornece apenas infraestrutura física para o cliente.', isCorrect: false },
+      { id: 'b', questionId: 'q2', position: 1, letter: 'B', text: 'Disponibiliza aplicações completas aos usuários finais.', isCorrect: false },
+      { id: 'c', questionId: 'q2', position: 2, letter: 'C', text: 'Exige que o cliente gerencie o sistema operacional.', isCorrect: false },
+      { id: 'd', questionId: 'q2', position: 3, letter: 'D', text: 'Fornece um ambiente de execução para o desenvolvimento e implantação de aplicações.', isCorrect: true },
+      { id: 'e', questionId: 'q2', position: 4, letter: 'E', text: 'É um modelo de implantação de nuvem.', isCorrect: false },
+    ] as any,
     explanation: 'O modelo PaaS (Platform as a Service) fornece uma plataforma completa que inclui infraestrutura, sistema operacional e ferramentas de desenvolvimento, permitindo que desenvolvedores criem e implantem aplicações sem gerenciar a infraestrutura subjacente.',
-    catch: 'A alternativa B descreve o modelo SaaS. A alternativa C descreve IaaS.',
-    conceptualDifficulty: 'Confusão entre os modelos de serviço SaaS, PaaS e IaaS.',
-    source: 'Cloud Computing - Aula 01.pdf • Página 18'
+    trapType: 'A alternativa B descreve o modelo SaaS. A alternativa C descreve IaaS.',
+    validationStatus: 'validated',
+    sourceReferences: [
+      { materialId: '1', page: 18, excerpt: 'O modelo PaaS (Platform as a Service) fornece uma plataforma...' }
+    ]
   }
 ];
 
