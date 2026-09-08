@@ -91,6 +91,29 @@ export const mockQuestions: Question[] = [
     sourceReferences: [
       { materialId: '1', page: 18, excerpt: 'O modelo PaaS (Platform as a Service) fornece uma plataforma...' }
     ]
+  },
+  {
+    id: 'q3',
+    materialId: '2',
+    conceptId: 'c_bd1',
+    board: 'FCC',
+    type: 'multipla-escolha',
+    difficulty: 'facil',
+    cognitiveObjective: 'Identificar a propriedade de atomicidade em transações',
+    statement: 'No contexto de Banco de Dados Relacionais, a propriedade das transações (ACID) que garante que todas as operações de uma transação sejam concluídas com sucesso ou nenhuma delas seja aplicada é a:',
+    options: [
+      { id: 'a', questionId: 'q3', position: 0, letter: 'A', text: 'Consistência.', isCorrect: false },
+      { id: 'b', questionId: 'q3', position: 1, letter: 'B', text: 'Isolamento.', isCorrect: false },
+      { id: 'c', questionId: 'q3', position: 2, letter: 'C', text: 'Atomicidade.', isCorrect: true },
+      { id: 'd', questionId: 'q3', position: 3, letter: 'D', text: 'Durabilidade.', isCorrect: false },
+      { id: 'e', questionId: 'q3', position: 4, letter: 'E', text: 'Normalização.', isCorrect: false },
+    ] as any,
+    explanation: 'A Atomicidade (o "A" de ACID) garante que a transação seja tratada como uma unidade indivisível de trabalho ("tudo ou nada").',
+    trapType: 'As outras alternativas listam as demais propriedades ACID, induzindo o candidato a confundir seus significados.',
+    validationStatus: 'validated',
+    sourceReferences: [
+      { materialId: '2', page: 45, excerpt: 'Atomicidade garante que a transação é tudo ou nada...' }
+    ]
   }
 ];
 

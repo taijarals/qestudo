@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { mockQuestions } from '../mocks/data';
 import { Badge } from '../components/ui/Badge';
@@ -7,14 +7,41 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 import { Card } from '../components/ui/Card';
 import { ArrowLeft, ArrowRight, XCircle, CheckCircle, AlertTriangle, HelpCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useStudySession } from '../context/StudySessionContext';
 
 export function StudySession() {
   const navigate = useNavigate();
+  const { activeSession, endSession, updateSession } = useStudySession();
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [status, setStatus] = useState<'answering' | 'correction'>('answering');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  
-  const question = mockQuestions[currentIndex];
+
+  // Protected route logic
+  useEffect(() => {
+    if (!activeSession) {
+      navigate('/estudar');
+    } else {
+      // Sync local state if context says we are further ahead (if we persist later)
+      setCurrentIndex(activeSession.currentQuestionIndex);
+    }
+  }, [activeSession, navigate]);
+
+  if (!activeSession) return null;
+
+  const currentQuestionId = activeSession.questionIds[currentIndex];
+  const question = mockQuestions.find(q => q.id === currentQuestionId);
+
+  // Fallback in case a mock ID wasn't found
+  if (!question) {
+    return (
+      <div className="p-8 text-center">
+        <h2 className="text-xl font-bold mb-4">Erro ao carregar a questão</h2>
+        <Button onClick={() => navigate('/estudar')}>Voltar</Button>
+      </div>
+    );
+  }
+
   const correctAnswerId = question.options.find(o => o.isCorrect)?.id;
   const isCorrect = selectedOption === correctAnswerId;
 
@@ -23,16 +50,19 @@ export function StudySession() {
   };
 
   const handleNext = () => {
-    if (currentIndex < mockQuestions.length - 1) {
-      setCurrentIndex(curr => curr + 1);
+    if (currentIndex < activeSession.questionIds.length - 1) {
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      updateSession({ currentQuestionIndex: nextIndex });
       setStatus('answering');
       setSelectedOption(null);
     } else {
-      navigate('/');
+      updateSession({ status: 'finished', finishedAt: new Date() });
+      navigate('/desempenho');
     }
   };
 
-  const progress = ((currentIndex) / mockQuestions.length) * 100;
+  const progress = ((currentIndex) / activeSession.questionIds.length) * 100;
 
   return (
     <div className="max-w-4xl mx-auto h-full flex flex-col relative bg-white">
@@ -40,11 +70,20 @@ export function StudySession() {
       <div className="px-8 py-6 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
         <div className="flex-1 max-w-sm">
           <div className="flex items-center justify-between text-sm font-medium mb-2 text-slate-500">
-            <span>Questão {currentIndex + 1} de {mockQuestions.length}</span>
+            <span>Questão {currentIndex + 1} de {activeSession.questionIds.length}</span>
             <span>{Math.round(progress)}%</span>
           </div>
           <ProgressBar value={progress} />
         </div>
+        <button 
+          onClick={() => {
+            endSession();
+            navigate('/estudar');
+          }}
+          className="text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
+        >
+          Encerrar sessão
+        </button>
       </div>
 
       {/* Main Content */}
@@ -201,14 +240,18 @@ export function StudySession() {
           </>
         ) : (
           <>
-            <Button variant="ghost" onClick={() => navigate('/estudar')}>
+            <Button variant="ghost" onClick={() => { endSession(); navigate('/estudar'); }}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar
+              Voltar e Encerrar
             </Button>
             <div className="flex items-center gap-3">
               <Button variant="outline" className="hidden sm:flex">Explique de forma simples</Button>
               <Button size="lg" onClick={handleNext} className="px-10">
-                Próxima questão <ArrowRight className="w-5 h-5 ml-2" />
+                {currentIndex < activeSession.questionIds.length - 1 ? (
+                  <>Próxima questão <ArrowRight className="w-5 h-5 ml-2" /></>
+                ) : (
+                  <>Concluir sessão <CheckCircle className="w-5 h-5 ml-2" /></>
+                )}
               </Button>
             </div>
           </>
