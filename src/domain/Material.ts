@@ -1,4 +1,4 @@
-export type MaterialStatus = 'uploaded' | 'extracting' | 'mapping_concepts' | 'ready' | 'error';
+export type MaterialStatus = 'uploaded' | 'extracting' | 'chunking' | 'ready_for_mapping' | 'mapping_concepts' | 'ready' | 'error';
 
 export interface Material {
   id: string;

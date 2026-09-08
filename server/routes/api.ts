@@ -16,6 +16,10 @@ const upload = multer({
 apiRouter.post('/materials/upload', upload.single('file'), materialController.upload);
 apiRouter.get('/materials', materialController.getAll);
 apiRouter.get('/materials/:id', materialController.getById);
+apiRouter.post('/materials/:id/process', materialController.process);
+apiRouter.get('/materials/:id/processing-status', materialController.getProcessingStatus);
+apiRouter.get('/materials/:id/pages', materialController.getPages);
+apiRouter.get('/materials/:id/chunks', materialController.getChunks);
 apiRouter.get('/materials/:id/concepts', materialController.getConcepts);
 apiRouter.get('/materials/:id/questions', materialController.getQuestions);
 

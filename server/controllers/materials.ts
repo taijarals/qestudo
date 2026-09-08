@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { MaterialService } from '../services/MaterialService';
 import { storageService } from '../services/storage';
+import { PdfProcessingService } from '../services/PdfProcessingService';
+import { prisma } from '../database/prisma';
+
 
 export const materialController = {
   upload: async (req: Request, res: Response) => {
@@ -53,6 +56,54 @@ export const materialController = {
       res.status(500).json({ error: e.message });
     }
   },
+  
+  process: async (req: Request, res: Response) => {
+    try {
+      const processor = new PdfProcessingService();
+      // Start processing asynchronously in background to not block the request
+      processor.processMaterial(req.params.id as string).catch(console.error);
+      res.json({ message: 'Processing started' });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+  getProcessingStatus: async (req: Request, res: Response) => {
+    try {
+      const data = await prisma.material.findUnique({
+        where: { id: req.params.id as string },
+        select: { status: true, processingProgress: true, processingError: true, pageCount: true }
+      });
+      if (!data) return res.status(404).json({ error: 'Not found' });
+      
+      const chunkCount = await prisma.materialChunk.count({ where: { materialId: req.params.id as string } });
+      res.json({ ...data, chunkCount });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+  getPages: async (req: Request, res: Response) => {
+    try {
+      const data = await prisma.materialPage.findMany({
+        where: { materialId: req.params.id as string },
+        orderBy: { pageNumber: 'asc' }
+      });
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+  getChunks: async (req: Request, res: Response) => {
+    try {
+      const data = await prisma.materialChunk.findMany({
+        where: { materialId: req.params.id as string },
+        orderBy: { order: 'asc' }
+      });
+      res.json(data);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+
   getById: async (req: Request, res: Response) => {
     try {
       const data = await MaterialService.getById(req.params.id as string);

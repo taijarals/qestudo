@@ -27,6 +27,9 @@ model Material {
   concepts  Concept[]
   questions Question[]
 
+  pages  MaterialPage[]
+  chunks MaterialChunk[]
+
   @@schema("qestudo")
 }
 
@@ -135,5 +138,34 @@ model ConceptMastery {
   wrongAnswers   Int     @default(0)
   concept        Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
 
+  @@schema("qestudo")
+}
+
+model MaterialPage {
+  id             String   @id @default(uuid())
+  materialId     String
+  pageNumber     Int
+  text           String
+  characterCount Int
+  hasUsableText  Boolean
+  createdAt      DateTime @default(now())
+  material       Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, pageNumber])
+  @@schema("qestudo")
+}
+
+model MaterialChunk {
+  id             String   @id @default(uuid())
+  materialId     String
+  order          Int
+  pageStart      Int
+  pageEnd        Int
+  text           String
+  characterCount Int
+  createdAt      DateTime @default(now())
+  material       Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, order])
   @@schema("qestudo")
 }
