@@ -2,43 +2,43 @@ const fs = require('fs');
 let schema = fs.readFileSync('prisma/schema.prisma', 'utf-8');
 
 const newModels = `
-model ConceptSource {
-  id              String   @id @default(uuid())
-  conceptId       String
-  materialChunkId String
-  pageStart       Int
-  pageEnd         Int
-  excerpt         String?
-  concept         Concept       @relation(fields: [conceptId], references: [id], onDelete: Cascade)
-  materialChunk   MaterialChunk @relation(fields: [materialChunkId], references: [id], onDelete: Cascade)
-  @@schema("qestudo")
-}
+model QuestionPlan {
+  id                    String   @id @default(uuid())
+  materialId            String
+  conceptId             String
+  board                 String
+  questionType          String
+  difficulty            String
+  cognitiveObjective    String
+  targetCorrectPosition Int?
+  targetTrueFalse       Boolean?
+  trapStrategy          String?
+  confusedConceptId     String?
+  sourceChunkIds        String[]
+  status                String   @default("planned")
+  createdAt             DateTime @default(now())
 
-model ConceptRelation {
-  id             String  @id @default(uuid())
-  conceptId      String
-  targetId       String
-  relationType   String  // 'related', 'confusable'
-  concept        Concept @relation("ConceptRelationSource", fields: [conceptId], references: [id], onDelete: Cascade)
-  targetConcept  Concept @relation("ConceptRelationTarget", fields: [targetId], references: [id], onDelete: Cascade)
-  @@unique([conceptId, targetId, relationType])
+  material              Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  concept               Concept  @relation("ConceptQuestionPlans", fields: [conceptId], references: [id], onDelete: Cascade)
+  confusedConcept       Concept? @relation("ConfusedConceptPlans", fields: [confusedConceptId], references: [id], onDelete: SetNull)
+
   @@schema("qestudo")
 }
 `;
 
 schema = schema.replace(
-  /model Concept \{[\s\S]*?@@schema\("qestudo"\)\n\}/,
+  /model Material \{[\s\S]*?@@schema\("qestudo"\)\n\}/,
   (match) => {
     return match.replace(/@@schema\("qestudo"\)/, 
-"  description String?\n  level       String?   @default(\"concept\")\n  sources     ConceptSource[]\n  relationsSource ConceptRelation[] @relation(\"ConceptRelationSource\")\n  relationsTarget ConceptRelation[] @relation(\"ConceptRelationTarget\")\n  @@schema(\"qestudo\")");
+"  questionPlans QuestionPlan[]\n  @@schema(\"qestudo\")");
   }
 );
 
 schema = schema.replace(
-  /model MaterialChunk \{[\s\S]*?@@schema\("qestudo"\)\n\}/,
+  /model Concept \{[\s\S]*?@@schema\("qestudo"\)\n\}/,
   (match) => {
     return match.replace(/@@schema\("qestudo"\)/, 
-"  conceptSources ConceptSource[]\n  @@schema(\"qestudo\")");
+"  questionPlans         QuestionPlan[] @relation(\"ConceptQuestionPlans\")\n  confusedQuestionPlans QuestionPlan[] @relation(\"ConfusedConceptPlans\")\n  @@schema(\"qestudo\")");
   }
 );
 

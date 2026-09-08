@@ -31,6 +31,8 @@ model Material {
   pages  MaterialPage[]
   chunks MaterialChunk[]
 
+  questionPlans QuestionPlan[]
+
   @@schema("qestudo")
 }
 
@@ -52,6 +54,9 @@ model Concept {
   sources         ConceptSource[]
   relationsSource ConceptRelation[] @relation("ConceptRelationSource")
   relationsTarget ConceptRelation[] @relation("ConceptRelationTarget")
+
+  questionPlans         QuestionPlan[] @relation("ConceptQuestionPlans")
+  confusedQuestionPlans QuestionPlan[] @relation("ConfusedConceptPlans")
 
   @@schema("qestudo")
 }
@@ -200,5 +205,28 @@ model ConceptRelation {
   targetConcept Concept @relation("ConceptRelationTarget", fields: [targetId], references: [id], onDelete: Cascade)
 
   @@unique([conceptId, targetId, relationType])
+  @@schema("qestudo")
+}
+
+model QuestionPlan {
+  id                    String   @id @default(uuid())
+  materialId            String
+  conceptId             String
+  board                 String
+  questionType          String
+  difficulty            String
+  cognitiveObjective    String
+  targetCorrectPosition Int?
+  targetTrueFalse       Boolean?
+  trapStrategy          String?
+  confusedConceptId     String?
+  sourceChunkIds        String[]
+  status                String   @default("planned")
+  createdAt             DateTime @default(now())
+
+  material        Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  concept         Concept  @relation("ConceptQuestionPlans", fields: [conceptId], references: [id], onDelete: Cascade)
+  confusedConcept Concept? @relation("ConfusedConceptPlans", fields: [confusedConceptId], references: [id], onDelete: SetNull)
+
   @@schema("qestudo")
 }

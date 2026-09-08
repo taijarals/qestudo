@@ -1,15 +1,19 @@
 const fs = require('fs');
 let code = fs.readFileSync('server/routes/api.ts', 'utf-8');
 
-code = code.replace(
-  "apiRouter.post('/materials/:id/process', materialController.process);",
-  "apiRouter.post('/materials/:id/process', materialController.process);\napiRouter.post('/materials/:id/map-concepts', materialController.mapConcepts);"
-);
+const importReplacement = `import { questionPlanController } from '../controllers/questionPlans';
+import { materialController } from '../controllers/materials';`;
+code = code.replace("import { materialController } from '../controllers/materials';", importReplacement);
 
-// We should also update the concept fetching to include the hierarchy.
+const newRoutes = `
+apiRouter.post('/question-plans', questionPlanController.create);
+apiRouter.get('/question-plans/:id', questionPlanController.getById);
+apiRouter.get('/concepts/:id/question-plans', questionPlanController.getByConcept);
+`;
+
 code = code.replace(
   "apiRouter.get('/materials/:id/concepts', materialController.getConcepts);",
-  "// apiRouter.get('/materials/:id/concepts', materialController.getConcepts);"
+  "apiRouter.get('/materials/:id/concepts', materialController.getConcepts);\n" + newRoutes
 );
 
 fs.writeFileSync('server/routes/api.ts', code);

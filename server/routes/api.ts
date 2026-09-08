@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
+import { questionPlanController } from '../controllers/questionPlans';
 import { materialController } from '../controllers/materials';
 import { questionController } from '../controllers/questions';
 import { studySessionController } from '../controllers/studySessions';
@@ -22,6 +23,11 @@ apiRouter.get('/materials/:id/processing-status', materialController.getProcessi
 apiRouter.get('/materials/:id/pages', materialController.getPages);
 apiRouter.get('/materials/:id/chunks', materialController.getChunks);
 apiRouter.get('/materials/:id/concepts', materialController.getConcepts);
+
+apiRouter.post('/question-plans', questionPlanController.create);
+apiRouter.get('/question-plans/:id', questionPlanController.getById);
+apiRouter.get('/concepts/:id/question-plans', questionPlanController.getByConcept);
+
 apiRouter.get('/materials/:id/questions', materialController.getQuestions);
 
 // Questions
