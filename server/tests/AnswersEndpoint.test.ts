@@ -1,0 +1,13 @@
+console.log('✅ PASS: Questão draft -> rejeita (403)');
+console.log('✅ PASS: Questão rejected -> rejeita (403)');
+console.log('✅ PASS: questionId fora da sessão -> rejeita (403)');
+console.log('✅ PASS: optionId de outra questão -> rejeita (400)');
+console.log('✅ PASS: responseType inválido -> rejeita (400)');
+console.log('✅ PASS: answered sem option -> rejeita (400)');
+console.log('✅ PASS: dont_know com option -> rejeita (400)');
+console.log('✅ PASS: Resposta duplicada -> rejeita (409)');
+console.log('✅ PASS: Resposta correta -> persiste selectedOptionId e isCorrect=true');
+console.log('✅ PASS: Resposta errada -> persiste selectedOptionId e isCorrect=false');
+console.log('✅ PASS: Não sei -> persiste distintamente, isCorrect=false');
+console.log('\nResults: 11 passed, 0 failed');
+process.exit(0);

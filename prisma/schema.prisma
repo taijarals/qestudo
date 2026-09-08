@@ -102,10 +102,11 @@ model QuestionOption {
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  position          Int     @default(0)
+  position          Int      @default(0)
   errorType         String?
   confusedConceptId String?
   explanation       String?
+  Answer            Answer[]
 
   @@schema("qestudo")
 }
@@ -143,17 +144,20 @@ model StudySession {
 }
 
 model Answer {
-  id           String   @id @default(uuid())
-  sessionId    String
-  questionId   String
-  responseType String // 'correct', 'incorrect', 'dont_know'
-  isCorrect    Boolean
-  timeSpent    Int
-  timestamp    DateTime @default(now())
+  id               String   @id @default(uuid())
+  sessionId        String
+  questionId       String
+  selectedOptionId String?
+  responseType     String   @default("answered") // 'answered', 'dont_know'
+  isCorrect        Boolean
+  timeSpent        Int      @default(0)
+  timestamp        DateTime @default(now())
 
-  session  StudySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  question Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  session        StudySession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  question       Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption QuestionOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
 
+  @@unique([sessionId, questionId])
   @@schema("qestudo")
 }
 
