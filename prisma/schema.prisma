@@ -80,6 +80,12 @@ model Question {
   sourceReferences   QuestionSourceReference[]
   answers            Answer[]
 
+  questionPlanId          String?       @unique
+  questionPlan            QuestionPlan? @relation(fields: [questionPlanId], references: [id])
+  generationPromptVersion String?
+  generationModel         String?
+  generatedAt             DateTime?     @default(now())
+
   @@schema("qestudo")
 }
 
@@ -90,6 +96,11 @@ model QuestionOption {
   isCorrect  Boolean
 
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  position          Int     @default(0)
+  errorType         String?
+  confusedConceptId String?
+  explanation       String?
 
   @@schema("qestudo")
 }
@@ -227,6 +238,8 @@ model QuestionPlan {
   material        Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
   concept         Concept  @relation("ConceptQuestionPlans", fields: [conceptId], references: [id], onDelete: Cascade)
   confusedConcept Concept? @relation("ConfusedConceptPlans", fields: [confusedConceptId], references: [id], onDelete: SetNull)
+
+  question Question?
 
   @@schema("qestudo")
 }

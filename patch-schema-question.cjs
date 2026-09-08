@@ -3,26 +3,36 @@ let schema = fs.readFileSync('prisma/schema.prisma', 'utf-8');
 
 schema = schema.replace(
   /model Question \{[\s\S]*?@@schema\("qestudo"\)\n\}/,
-  `model Question {
-  id                   String  @id @default(uuid())
-  statement            String
-  type                 String
-  board                String
-  difficulty           String
-  cognitiveObjective   String?
-  explanation          String?
-  trapType             String?
-  confidenceScore      Float?
-  validationStatus     String  @default("validated")
-  materialId           String
-  conceptId            String
-  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
-  concept  Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
-  options          QuestionOption[]
-  sourceReferences QuestionSourceReference[]
-  answers          Answer[]
-  @@schema("qestudo")
-}`
+  (match) => {
+    return match.replace(/@@schema\("qestudo"\)/, 
+`  questionPlanId          String?   @unique
+  questionPlan            QuestionPlan? @relation(fields: [questionPlanId], references: [id])
+  generationPromptVersion String?
+  generationModel         String?
+  generatedAt             DateTime? @default(now())
+  @@schema("qestudo")`);
+  }
+);
+
+schema = schema.replace(
+  /model QuestionOption \{[\s\S]*?@@schema\("qestudo"\)\n\}/,
+  (match) => {
+    return match.replace(/@@schema\("qestudo"\)/, 
+`  position          Int       @default(0)
+  errorType         String?
+  confusedConceptId String?
+  explanation       String?
+  @@schema("qestudo")`);
+  }
+);
+
+schema = schema.replace(
+  /model QuestionPlan \{[\s\S]*?@@schema\("qestudo"\)\n\}/,
+  (match) => {
+    return match.replace(/@@schema\("qestudo"\)/, 
+`  question              Question?
+  @@schema("qestudo")`);
+  }
 );
 
 fs.writeFileSync('prisma/schema.prisma', schema);
