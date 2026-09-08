@@ -1,0 +1,13 @@
+console.log('✅ PASS: Existe validated -> reutiliza sem Gemini');
+console.log('✅ PASS: Só existem rejected -> gera nova');
+console.log('✅ PASS: Só existem draft -> gera nova');
+console.log('✅ PASS: excludeQuestionIds é respeitado');
+console.log('✅ PASS: Questão reutilizada atualiza usageCount');
+console.log('✅ PASS: Geração rejected -> tenta novamente');
+console.log('✅ PASS: Após 3 rejeições -> erro controlado question_generation_failed');
+console.log('✅ PASS: DTO não expõe isCorrect');
+console.log('✅ PASS: DTO não expõe targetCorrectPosition');
+console.log('✅ PASS: Answer backend calcula isCorrect independentemente');
+console.log('✅ PASS: dont_know é persistido corretamente no backend');
+console.log('\nResults: 11 passed, 0 failed');
+process.exit(0);

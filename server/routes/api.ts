@@ -2,6 +2,8 @@ import { prisma } from '../database/prisma';
 import { Router } from 'express';
 import multer from 'multer';
 import { questionController } from '../controllers/questions';
+import { questionProviderController } from '../controllers/questionProvider';
+import { answersController } from '../controllers/answers';
 import { QuestionValidatorService } from '../services/QuestionValidatorService';
 const validatorService = new QuestionValidatorService();
 import { questionPlanController } from '../controllers/questionPlans';
@@ -33,6 +35,10 @@ apiRouter.get('/concepts/:id/question-plans', questionPlanController.getByConcep
 
 apiRouter.post('/question-plans/:planId/generate', questionController.generate);
 apiRouter.get('/questions/:id', questionController.getById);
+
+
+apiRouter.post('/questions/provide', questionProviderController.provide);
+apiRouter.post('/answers', answersController.submit);
 
 apiRouter.post('/questions/:id/validate', async (req, res) => {
   try {

@@ -88,6 +88,9 @@ model Question {
 
   validations QuestionValidation[]
 
+  usageCount Int       @default(0)
+  lastUsedAt DateTime?
+
   @@schema("qestudo")
 }
 
