@@ -7,6 +7,7 @@ import { StudyConfig } from './pages/StudyConfig';
 import { StudySession } from './pages/StudySession';
 import { Performance } from './pages/Performance';
 import { ErrorNotebook } from './pages/ErrorNotebook';
+import { SessionResult } from './pages/SessionResult';
 import { StudySessionProvider } from './context/StudySessionContext';
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/materiais" element={<Materials />} />
             <Route path="/estudar" element={<StudyConfig />} />
             <Route path="/sessao" element={<StudySession />} />
+            <Route path="/resultado-sessao" element={<SessionResult />} />
             <Route path="/desempenho" element={<Performance />} />
             <Route path="/erros" element={<ErrorNotebook />} />
             <Route path="/configuracoes" element={<div className="p-8">Configurações (Em breve)</div>} />

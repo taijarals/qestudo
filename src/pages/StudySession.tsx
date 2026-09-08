@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { mockQuestions } from '../mocks/data';
 import { Badge } from '../components/ui/Badge';
@@ -8,27 +8,22 @@ import { Card } from '../components/ui/Card';
 import { ArrowLeft, ArrowRight, XCircle, CheckCircle, AlertTriangle, HelpCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useStudySession } from '../context/StudySessionContext';
+import { useStudyEngine } from '../hooks/useStudyEngine';
 
 export function StudySession() {
   const navigate = useNavigate();
-  const { activeSession, endSession, updateSession } = useStudySession();
-
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [status, setStatus] = useState<'answering' | 'correction'>('answering');
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const { activeSession, endSession, answers } = useStudySession();
 
   // Protected route logic
   useEffect(() => {
     if (!activeSession) {
       navigate('/estudar');
-    } else {
-      // Sync local state if context says we are further ahead (if we persist later)
-      setCurrentIndex(activeSession.currentQuestionIndex);
     }
   }, [activeSession, navigate]);
 
   if (!activeSession) return null;
 
+  const currentIndex = activeSession.currentQuestionIndex;
   const currentQuestionId = activeSession.questionIds[currentIndex];
   const question = mockQuestions.find(q => q.id === currentQuestionId);
 
@@ -42,27 +37,24 @@ export function StudySession() {
     );
   }
 
+  const { 
+    status, 
+    selectedOption, 
+    setSelectedOption, 
+    confirmAnswer, 
+    handleFeedback, 
+    nextQuestion,
+    responseType
+  } = useStudyEngine(currentQuestionId);
+
   const correctAnswerId = question.options.find(o => o.isCorrect)?.id;
   const isCorrect = selectedOption === correctAnswerId;
+  const isDontKnow = responseType === 'dont_know';
 
-  const handleConfirm = () => {
-    if (selectedOption) setStatus('correction');
-  };
-
-  const handleNext = () => {
-    if (currentIndex < activeSession.questionIds.length - 1) {
-      const nextIndex = currentIndex + 1;
-      setCurrentIndex(nextIndex);
-      updateSession({ currentQuestionIndex: nextIndex });
-      setStatus('answering');
-      setSelectedOption(null);
-    } else {
-      updateSession({ status: 'finished', finishedAt: new Date() });
-      navigate('/desempenho');
-    }
-  };
-
-  const progress = ((currentIndex) / activeSession.questionIds.length) * 100;
+  const progress = ((currentIndex + 1) / activeSession.questionIds.length) * 100;
+  
+  const currentAnswer = answers.find(a => a.questionId === currentQuestionId);
+  const feedback = currentAnswer?.understandingFeedback;
 
   return (
     <div className="max-w-4xl mx-auto h-full flex flex-col relative bg-white">
@@ -155,13 +147,30 @@ export function StudySession() {
         {status === 'correction' && (
           <div className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
-            <div className={cn('p-6 rounded-2xl flex items-start gap-4', isCorrect ? 'bg-green-50' : 'bg-red-50')}>
-              {isCorrect ? <CheckCircle className="w-8 h-8 text-green-600 shrink-0" /> : <XCircle className="w-8 h-8 text-red-600 shrink-0" />}
+            <div className={cn(
+              'p-6 rounded-2xl flex items-start gap-4', 
+              isCorrect ? 'bg-green-50' : (isDontKnow ? 'bg-slate-50 border border-slate-200' : 'bg-red-50')
+            )}>
+              {isCorrect ? (
+                <CheckCircle className="w-8 h-8 text-green-600 shrink-0" />
+              ) : isDontKnow ? (
+                <HelpCircle className="w-8 h-8 text-slate-500 shrink-0" />
+              ) : (
+                <XCircle className="w-8 h-8 text-red-600 shrink-0" />
+              )}
+              
               <div>
-                <h3 className={cn('text-xl font-bold', isCorrect ? 'text-green-900' : 'text-red-900')}>
-                  {isCorrect ? 'Você acertou!' : 'Você errou'}
+                <h3 className={cn(
+                  'text-xl font-bold', 
+                  isCorrect ? 'text-green-900' : (isDontKnow ? 'text-slate-900' : 'text-red-900')
+                )}>
+                  {isCorrect ? 'Você acertou!' : isDontKnow ? 'Você não sabia' : 'Você errou'}
                 </h3>
-                {!isCorrect && <p className="text-red-700 mt-1">Mas isso faz parte do aprendizado!</p>}
+                {!isCorrect && (
+                  <p className={cn("mt-1", isDontKnow ? 'text-slate-600' : 'text-red-700')}>
+                    {isDontKnow ? 'É normal não saber tudo! Aprenda com a explicação.' : 'Mas isso faz parte do aprendizado!'}
+                  </p>
+                )}
                 
                 <div className="flex gap-8 mt-4 pt-4 border-t border-black/10">
                   <div>
@@ -170,7 +179,7 @@ export function StudySession() {
                       {(question.options?.find(o => o.isCorrect) as any)?.letter || question.options?.find(o => o.isCorrect)?.text}
                     </p>
                   </div>
-                  {!isCorrect && (
+                  {!isCorrect && !isDontKnow && (
                     <div>
                       <span className="text-sm uppercase tracking-wider font-semibold opacity-70">Sua resposta</span>
                       <p className="text-lg font-bold mt-1">
@@ -211,9 +220,27 @@ export function StudySession() {
             <Card className="p-6 bg-slate-50 mt-8 border-none">
               <h4 className="font-bold text-slate-900 mb-4 text-center">Você entendeu esta explicação?</h4>
               <div className="flex justify-center gap-4">
-                <Button variant="success" className="w-32">Sim</Button>
-                <Button variant="warning" className="w-32 bg-amber-100 text-amber-800 hover:bg-amber-200">Mais ou menos</Button>
-                <Button variant="danger" className="w-32">Não</Button>
+                <Button 
+                  variant={feedback === 'understood' ? 'success' : 'outline'}
+                  onClick={() => handleFeedback('understood')}
+                  className={cn("w-32", feedback === 'understood' ? '' : 'bg-white hover:bg-green-50 hover:text-green-700 hover:border-green-200')}
+                >
+                  Sim
+                </Button>
+                <Button 
+                  variant={feedback === 'partial' ? 'warning' : 'outline'}
+                  onClick={() => handleFeedback('partial')}
+                  className={cn("w-32", feedback === 'partial' ? 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200' : 'bg-white hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200')}
+                >
+                  Mais ou menos
+                </Button>
+                <Button 
+                  variant={feedback === 'not_understood' ? 'danger' : 'outline'}
+                  onClick={() => handleFeedback('not_understood')}
+                  className={cn("w-32", feedback === 'not_understood' ? '' : 'bg-white hover:bg-red-50 hover:text-red-700 hover:border-red-200')}
+                >
+                  Não
+                </Button>
               </div>
             </Card>
 
@@ -225,14 +252,14 @@ export function StudySession() {
       <div className="absolute bottom-0 left-0 right-0 p-6 bg-white border-t border-slate-200 flex items-center justify-between">
         {status === 'answering' ? (
           <>
-            <Button variant="ghost" className="text-slate-500">
+            <Button variant="ghost" className="text-slate-500" onClick={() => confirmAnswer(false, true)}>
               <HelpCircle className="w-4 h-4 mr-2" />
               Não sei
             </Button>
             <Button 
               size="lg" 
               disabled={!selectedOption} 
-              onClick={handleConfirm}
+              onClick={() => confirmAnswer(isCorrect, false)}
               className="px-10"
             >
               Confirmar resposta <ArrowRight className="w-5 h-5 ml-2" />
@@ -246,7 +273,7 @@ export function StudySession() {
             </Button>
             <div className="flex items-center gap-3">
               <Button variant="outline" className="hidden sm:flex">Explique de forma simples</Button>
-              <Button size="lg" onClick={handleNext} className="px-10">
+              <Button size="lg" onClick={nextQuestion} className="px-10">
                 {currentIndex < activeSession.questionIds.length - 1 ? (
                   <>Próxima questão <ArrowRight className="w-5 h-5 ml-2" /></>
                 ) : (
