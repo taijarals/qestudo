@@ -27,4 +27,3 @@ export class MaterialService {
   }
 }
 
-export const materialService = new MaterialService();

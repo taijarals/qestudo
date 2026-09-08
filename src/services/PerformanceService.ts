@@ -12,4 +12,3 @@ export class PerformanceService {
   }
 }
 
-export const performanceService = new PerformanceService();

@@ -1,0 +1,128 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["qestudo"]
+}
+
+model Material {
+  id          String @id @default(uuid())
+  title       String
+  description String
+  progress    Int    @default(0)
+
+  concepts  Concept[]
+  questions Question[]
+
+  @@schema("qestudo")
+}
+
+model Concept {
+  id         String  @id @default(uuid())
+  name       String
+  materialId String
+  parentId   String?
+
+  material Material  @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  parent   Concept?  @relation("ConceptToConcept", fields: [parentId], references: [id], onDelete: SetNull)
+  children Concept[] @relation("ConceptToConcept")
+
+  questions Question[]
+  mastery   ConceptMastery?
+
+  @@schema("qestudo")
+}
+
+model Question {
+  id                   String  @id @default(uuid())
+  text                 String
+  type                 String // e.g., 'certo-errado', 'multipla-escolha'
+  board                String
+  year                 Int
+  difficulty           String
+  conceptualDifficulty String?
+  materialId           String
+  conceptId            String
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  concept  Concept  @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  options          QuestionOption[]
+  sourceReferences QuestionSourceReference[]
+  answers          Answer[]
+
+  @@schema("qestudo")
+}
+
+model QuestionOption {
+  id         String  @id @default(uuid())
+  questionId String
+  text       String
+  isCorrect  Boolean
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@schema("qestudo")
+}
+
+model QuestionSourceReference {
+  id         String @id @default(uuid())
+  questionId String
+  text       String
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@schema("qestudo")
+}
+
+model StudySession {
+  id            String   @id @default(uuid())
+  materialIds   String[]
+  boards        String[]
+  questionTypes String[]
+  mode          String
+  quantity      Int
+  conceptIds    String[]
+
+  questionIds          String[] // Storing ordered IDs for the session
+  currentQuestionIndex Int       @default(0)
+  startedAt            DateTime  @default(now())
+  finishedAt           DateTime?
+  status               String // 'active', 'finished'
+
+  answers Answer[]
+
+  @@schema("qestudo")
+}
+
+model Answer {
+  id           String   @id @default(uuid())
+  sessionId    String
+  questionId   String
+  responseType String // 'correct', 'incorrect', 'dont_know'
+  isCorrect    Boolean
+  timeSpent    Int
+  timestamp    DateTime @default(now())
+
+  session  StudySession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  question Question     @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@schema("qestudo")
+}
+
+model ConceptMastery {
+  id                String    @id @default(uuid())
+  conceptId         String    @unique
+  masteryLevel      Int
+  questionsAnswered Int       @default(0)
+  correctAnswers    Int       @default(0)
+  lastReview        DateTime?
+
+  concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  @@schema("qestudo")
+}

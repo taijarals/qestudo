@@ -38,4 +38,3 @@ export class StudyService {
   }
 }
 
-export const studyService = new StudyService();
