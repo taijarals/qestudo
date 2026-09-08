@@ -1,3 +1,4 @@
+import { ConceptMappingService } from '../services/ConceptMappingService';
 import { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { MaterialService } from '../services/MaterialService';
@@ -57,6 +58,17 @@ export const materialController = {
     }
   },
   
+  
+  mapConcepts: async (req: Request, res: Response) => {
+    try {
+      const mapper = new ConceptMappingService();
+      mapper.mapConcepts(req.params.id as string).catch(console.error);
+      res.json({ message: 'Mapping started' });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  },
+
   process: async (req: Request, res: Response) => {
     try {
       const processor = new PdfProcessingService();
@@ -113,14 +125,33 @@ export const materialController = {
       res.status(500).json({ error: e.message });
     }
   },
+  
   getConcepts: async (req: Request, res: Response) => {
     try {
-      const data = await MaterialService.getConcepts(req.params.id as string);
-      res.json(data);
+      const disciplines = await prisma.concept.findMany({
+        where: { materialId: req.params.id as string, level: 'discipline' },
+        include: {
+          children: {
+            include: {
+              children: {
+                include: {
+                  children: {
+                    include: {
+                      sources: { include: { materialChunk: true } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+      res.json(disciplines);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }
   },
+
   getQuestions: async (req: Request, res: Response) => {
     try {
       const data = await MaterialService.getQuestions(req.params.id as string);

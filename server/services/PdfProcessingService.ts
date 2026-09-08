@@ -1,8 +1,7 @@
 import { prisma } from '../database/prisma';
 import { storageService } from './storage';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
+import * as pdfParseLib from 'pdf-parse';
+const pdfParse = (pdfParseLib as any).default || pdfParseLib;
 
 interface PageData {
   hasUsableText?: boolean;

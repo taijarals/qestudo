@@ -5,7 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { materialService } from '../services';
-import { ArrowLeft, ChevronDown, ChevronRight, FileText, Target, BookOpen, FileQuestion, GraduationCap, Play, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronRight, FileText, Target, BookOpen, FileQuestion, GraduationCap, Play, Loader2, Sparkles } from 'lucide-react';
 import { ENV } from '../config/env';
 import { Concept, ConceptMastery, Material, Question } from '../domain';
 import { cn } from '../lib/utils';
@@ -51,7 +51,7 @@ export function MaterialDetails() {
       setQuestions(qts);
       setLoading(false);
       
-      if (m?.status === 'extracting' || m?.status === 'chunking') {
+      if (m?.status === 'extracting' || m?.status === 'chunking' || m?.status === 'mapping_concepts') {
         setIsProcessing(true);
         pollProcessingStatus(m.id);
       } else if (m?.status === 'ready_for_mapping' || m?.status === 'ready') {
@@ -88,7 +88,7 @@ export function MaterialDetails() {
           
           setMaterial(prev => prev ? { ...prev, status: data.status, pageCount: data.pageCount } : prev);
 
-          if (data.status === 'ready_for_mapping' || data.status === 'error' || data.status === 'ready') {
+          if (data.status === 'ready_for_mapping' || data.status === 'error' || data.status === 'ready' || data.status === 'mapping_error') {
             clearInterval(interval);
             setIsProcessing(false);
           }
@@ -97,6 +97,27 @@ export function MaterialDetails() {
         console.error('Polling error', error);
       }
     }, 2000);
+  };
+
+
+  const handleMapConcepts = async () => {
+    if (!material) return;
+    setIsProcessing(true);
+    try {
+      const res = await fetch(`${ENV.API_URL}/materials/${material.id}/map-concepts`, { method: 'POST' });
+      if (res.ok) {
+         setMaterial({ ...material, status: 'mapping_concepts' });
+         pollProcessingStatus(material.id);
+      } else {
+         const err = await res.json();
+         alert(err.error || 'Erro ao iniciar mapeamento');
+         setIsProcessing(false);
+      }
+    } catch (error) {
+       console.error(error);
+       alert('Erro de rede');
+       setIsProcessing(false);
+    }
   };
 
   const handleProcessMaterial = async () => {
@@ -298,7 +319,7 @@ export function MaterialDetails() {
                   <Badge variant="danger">Erro no processamento</Badge>
                 ) : (
                   <Badge variant="warning">
-                     {material.status === 'extracting' ? 'Extraindo texto...' : 'Preparando conteúdo...'}
+                     {material.status === 'extracting' ? 'Extraindo texto...' : material.status === 'mapping_concepts' ? 'Identificando assuntos e conceitos...' : 'Preparando conteúdo...'}
                   </Badge>
                 )}
               </div>
@@ -306,6 +327,15 @@ export function MaterialDetails() {
             </div>
 
 
+
+            {material.status === 'ready_for_mapping' && (
+              <div className="pt-2">
+                <Button onClick={handleMapConcepts} disabled={isProcessing} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white">
+                   {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                   {isProcessing ? 'Iniciando análise...' : 'Analisar conteúdo'}
+                </Button>
+              </div>
+            )}
             {material.status === 'uploaded' && (
               <div className="pt-2">
                 <Button onClick={handleProcessMaterial} disabled={isProcessing} className="flex items-center gap-2">
@@ -315,7 +345,7 @@ export function MaterialDetails() {
               </div>
             )}
             
-            {(material.status === 'extracting' || material.status === 'chunking') && processingStats && (
+            {(material.status === 'extracting' || material.status === 'chunking' || material.status === 'mapping_concepts') && processingStats && (
                <div className="pt-2 space-y-2">
                  <div className="flex justify-between text-sm text-slate-500">
                     <span>Progresso</span>
@@ -325,7 +355,7 @@ export function MaterialDetails() {
                </div>
             )}
 
-            {material.status === 'error' && processingStats?.error && (
+            {(material.status === 'error' || material.status === 'mapping_error') && processingStats?.error && (
                <div className="pt-2">
                  <div className="p-3 bg-red-50 text-red-700 text-sm rounded-md border border-red-100">
                     Erro: {processingStats.error}

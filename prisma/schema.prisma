@@ -4,9 +4,10 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  schemas  = ["qestudo"]
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  schemas   = ["qestudo"]
 }
 
 model Material {
@@ -45,6 +46,12 @@ model Concept {
 
   questions Question[]
   mastery   ConceptMastery?
+
+  description     String?
+  level           String?           @default("concept")
+  sources         ConceptSource[]
+  relationsSource ConceptRelation[] @relation("ConceptRelationSource")
+  relationsTarget ConceptRelation[] @relation("ConceptRelationTarget")
 
   @@schema("qestudo")
 }
@@ -156,16 +163,42 @@ model MaterialPage {
 }
 
 model MaterialChunk {
-  id             String   @id @default(uuid())
+  id             String          @id @default(uuid())
   materialId     String
   order          Int
   pageStart      Int
   pageEnd        Int
   text           String
   characterCount Int
-  createdAt      DateTime @default(now())
-  material       Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  createdAt      DateTime        @default(now())
+  material       Material        @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  conceptSources ConceptSource[]
 
   @@unique([materialId, order])
+  @@schema("qestudo")
+}
+
+model ConceptSource {
+  id              String        @id @default(uuid())
+  conceptId       String
+  materialChunkId String
+  pageStart       Int
+  pageEnd         Int
+  excerpt         String?
+  concept         Concept       @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  materialChunk   MaterialChunk @relation(fields: [materialChunkId], references: [id], onDelete: Cascade)
+
+  @@schema("qestudo")
+}
+
+model ConceptRelation {
+  id            String  @id @default(uuid())
+  conceptId     String
+  targetId      String
+  relationType  String // 'related', 'confusable'
+  concept       Concept @relation("ConceptRelationSource", fields: [conceptId], references: [id], onDelete: Cascade)
+  targetConcept Concept @relation("ConceptRelationTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([conceptId, targetId, relationType])
   @@schema("qestudo")
 }

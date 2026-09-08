@@ -17,6 +17,7 @@ apiRouter.post('/materials/upload', upload.single('file'), materialController.up
 apiRouter.get('/materials', materialController.getAll);
 apiRouter.get('/materials/:id', materialController.getById);
 apiRouter.post('/materials/:id/process', materialController.process);
+apiRouter.post('/materials/:id/map-concepts', materialController.mapConcepts);
 apiRouter.get('/materials/:id/processing-status', materialController.getProcessingStatus);
 apiRouter.get('/materials/:id/pages', materialController.getPages);
 apiRouter.get('/materials/:id/chunks', materialController.getChunks);
