@@ -1,77 +1,62 @@
 const fs = require('fs');
-let code = fs.readFileSync('src/pages/StudyConfig.tsx', 'utf-8');
+let code = fs.readFileSync('server/services/QuestionGeneratorService.ts', 'utf-8');
 
-code = code.replace(/import \{ mockQuestions \} from '\.\.\/mocks\/data';/g, "import { studyService } from '../services';");
+// Patch chunk fetching
+code = code.replace(
+  "where: { id: { in: plan.sourceChunkIds } }",
+  "where: { id: { in: plan.sourceChunkIds }, materialId: plan.materialId }"
+);
 
-const newLogic = `
-  const [errorMsg, setErrorMsg] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+// Patch source validation
+const originalValidation = `        // Add source references (validating against allowed chunks)
+        const validSources = data.sourceChunkIds.filter((id: string) => plan.sourceChunkIds.includes(id));
+        if (validSources.length === 0 && plan.sourceChunkIds.length > 0) {
+           // Fallback if model hallucinates chunks, just use the first authorized chunk
+           validSources.push(plan.sourceChunkIds[0]);
+        }
+        
+        for (const chunkId of validSources) {
+           const c = chunks.find(ch => ch.id === chunkId);
+           if (c) {
+             await tx.questionSourceReference.create({
+               data: {
+                 questionId: question.id,
+                 materialId: plan.materialId,
+                 chunkId: c.id,
+                 page: c.pageStart,
+                 excerpt: c.text.substring(0, 200) + '...' // simplification for excerpt
+               }
+             });
+           }
+        }`;
 
-  const handleStartSession = async () => {
-    setErrorMsg('');
-    
-    // 1. Validation
-    if (!formats.ce && !formats.me) {
-      setErrorMsg('Selecione pelo menos um formato de questão.');
-      return;
-    }
+const newValidation = `        // Add source references (validating against allowed chunks)
+        const validSources = data.sourceChunkIds.filter((id: string) => plan.sourceChunkIds.includes(id));
+        
+        if (validSources.length === 0) {
+           throw new Error('No valid sourceChunkIds returned by the model');
+        }
+        
+        if (validSources.length !== data.sourceChunkIds.length) {
+           throw new Error('Model returned unauthorized sourceChunkIds');
+        }
+        
+        for (const chunkId of validSources) {
+           const c = chunks.find(ch => ch.id === chunkId);
+           if (!c) {
+              throw new Error(\`Chunk \${chunkId} not found in loaded chunks\`);
+           }
+           await tx.questionSourceReference.create({
+             data: {
+               questionId: question.id,
+               materialId: plan.materialId,
+               chunkId: c.id,
+               page: c.pageStart,
+               excerpt: c.text.substring(0, 200) + '...' // simplification for excerpt
+             }
+           });
+        }`;
 
-    // 2. Build Config
-    const selectedBoards = board === 'Misturado' 
-      ? ['CEBRASPE', 'FGV', 'FCC'] 
-      : [board];
-      
-    const selectedTypes = [];
-    if (formats.ce) selectedTypes.push('certo-errado');
-    if (formats.me) selectedTypes.push('multipla-escolha');
+code = code.replace(originalValidation, newValidation);
 
-    const config = {
-      materialIds: [material],
-      boards: selectedBoards,
-      questionTypes: selectedTypes,
-      quantity,
-      mode,
-      conceptIds: mode === 'specific' ? [concept] : undefined,
-    };
-
-    setIsLoading(true);
-
-    try {
-      const questionsForSession = await studyService.generateQuestionsForSession(config);
-
-      let availableQuestions = questionsForSession.filter(q => 
-        config.questionTypes.includes(q.type)
-      );
-
-      if (availableQuestions.length === 0) {
-        setErrorMsg('Nenhuma questão encontrada com estes filtros. Tente misturar as bancas ou formatos.');
-        setIsLoading(false);
-        return;
-      }
-
-      const questionIds = availableQuestions.map(q => q.id).slice(0, quantity);
-
-      // 4. Create Session
-      const session = {
-        id: \`sess_\${Date.now()}\`,
-        config,
-        questionIds,
-        currentQuestionIndex: 0,
-        startedAt: new Date(),
-        status: 'active' as const
-      };
-
-      startSession(session);
-      navigate('/sessao');
-    } catch (e) {
-      setErrorMsg('Erro ao gerar a sessão.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-`;
-
-const regex = /const \[errorMsg, setErrorMsg\] = useState\(''\);[\s\S]*?startSession\(session\);\s*navigate\('\/sessao'\);\s*};/m;
-code = code.replace(regex, newLogic.trim());
-
-fs.writeFileSync('src/pages/StudyConfig.tsx', code);
+fs.writeFileSync('server/services/QuestionGeneratorService.ts', code);
