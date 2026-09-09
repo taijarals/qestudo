@@ -6,6 +6,7 @@ import { StudyNextQuestionService } from '../services/StudyNextQuestionService';
 const studyNextQuestionService = new StudyNextQuestionService();
 import { questionProviderController } from '../controllers/questionProvider';
 import { answersController } from '../controllers/answers';
+import { comprehensionFeedbackController } from '../controllers/comprehensionFeedback';
 import { QuestionValidatorService } from '../services/QuestionValidatorService';
 const validatorService = new QuestionValidatorService();
 import { questionPlanController } from '../controllers/questionPlans';
@@ -41,6 +42,8 @@ apiRouter.get('/questions/:id', questionController.getById);
 
 apiRouter.post('/questions/provide', questionProviderController.provide);
 apiRouter.post('/answers', answersController.submit);
+apiRouter.post('/answers/:answerId/comprehension', comprehensionFeedbackController.submit);
+
 
 apiRouter.post('/study-sessions/:id/next-question', async (req, res) => {
   try {

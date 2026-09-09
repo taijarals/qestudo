@@ -86,6 +86,7 @@ export const answersController = {
 
       // Persist answer and update session atomically
       const now = new Date();
+      let finalAnswerId = '';
       await prisma.$transaction(async (tx) => {
         await tx.answer.create({
           data: {
@@ -99,6 +100,9 @@ export const answersController = {
         });
 
         // Increment currentQuestionIndex
+        let localAnswerId = '';
+        const newAnswer = await tx.answer.findUnique({ where: { sessionId_questionId: { sessionId, questionId } } });
+        if (newAnswer) finalAnswerId = newAnswer.id;
         const updatedSession = await tx.studySession.update({
           where: { id: sessionId },
           data: {
@@ -131,6 +135,7 @@ export const answersController = {
 
       // Prepare feedback DTO
       const resultDto = {
+        answerId: finalAnswerId || null,
         questionId,
         isCorrect,
         correctOptionId,

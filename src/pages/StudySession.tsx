@@ -220,6 +220,14 @@ export function StudySession() {
             
             <Card className="p-6 bg-slate-50 mt-8 border-none">
               <h4 className="font-bold text-slate-900 mb-4 text-center">Você entendeu esta explicação?</h4>
+              {feedbackStatus ? (
+                <div className="text-center space-y-2 animate-in fade-in zoom-in duration-300">
+                  <p className="text-green-700 font-medium">Feedback registrado. Obrigado!</p>
+                  {feedbackStatus === 'not_understood' && (
+                    <p className="text-sm text-slate-600 mt-2">Vamos reforçar esse assunto nas próximas questões.</p>
+                  )}
+                </div>
+              ) : (
               <div className="flex justify-center gap-4">
                 <Button 
                   variant={feedback === 'understood' ? 'success' : 'outline'}
@@ -243,6 +251,7 @@ export function StudySession() {
                   Não
                 </Button>
               </div>
+              )}
             </Card>
 
           </div>

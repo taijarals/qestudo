@@ -11,15 +11,19 @@ export function useStudyEngine(questionId: string) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [startTime, setStartTime] = useState<number>(Date.now());
   const [responseType, setResponseType] = useState<ResponseType>('answered');
+  const [answerId, setAnswerId] = useState<string | null>(null);
+  const [feedbackStatus, setFeedbackStatus] = useState<string | null>(null);
 
   useEffect(() => {
     setStatus('answering');
     setSelectedOption(null);
     setStartTime(Date.now());
     setResponseType('answered');
+    setAnswerId(null);
+    setFeedbackStatus(null);
   }, [questionId]);
 
-  const confirmAnswer = useCallback((isCorrect: boolean, isDontKnow: boolean = false) => {
+  const confirmAnswer = useCallback(async (isCorrect: boolean, isDontKnow: boolean = false) => {
     if (!activeSession) return;
 
     const timeTaken = Date.now() - startTime;
@@ -39,10 +43,43 @@ export function useStudyEngine(questionId: string) {
     addAnswer(answer);
     setResponseType(rType);
     setStatus('correction');
+
+    try {
+      const res = await fetch('/api/answers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: activeSession.id,
+          questionId,
+          selectedOptionId: isDontKnow ? undefined : selectedOption,
+          responseType: rType,
+          timeSpent: timeTaken
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAnswerId(data.answerId);
+      }
+    } catch(e) {
+      console.error('Failed to submit answer to backend', e);
+    }
+    
   }, [activeSession, startTime, questionId, selectedOption, addAnswer]);
 
-  const handleFeedback = useCallback((feedback: UnderstandingFeedback) => {
+  const handleFeedback = useCallback(async (feedback: UnderstandingFeedback) => {
     updateAnswerFeedback(questionId, feedback);
+    if (answerId) {
+       try {
+         await fetch(`/api/answers/${answerId}/comprehension`, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ feedback })
+         });
+         setFeedbackStatus(feedback);
+       } catch (e) {
+         console.error('Failed to submit feedback', e);
+       }
+    }
   }, [questionId, updateAnswerFeedback]);
 
   const nextQuestion = useCallback(() => {
@@ -58,6 +95,7 @@ export function useStudyEngine(questionId: string) {
 
   return {
     status,
+    feedbackStatus,
     selectedOption,
     setSelectedOption,
     confirmAnswer,

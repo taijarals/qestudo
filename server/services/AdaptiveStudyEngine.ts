@@ -65,7 +65,7 @@ export class AdaptiveStudyEngine {
 
       if (c.mastery.nextReviewAt && c.mastery.nextReviewAt <= now) {
         review.push(c);
-      } else if (c.mastery.status === 'learning' || c.mastery.masteryScore < 0.5) {
+      } else if (c.mastery.status === 'learning' || c.mastery.masteryScore < 0.5 || c.mastery.lastComprehensionFeedback === 'not_understood') {
         weak.push(c);
       } else if (c.mastery.status === 'mastered') {
         maintenance.push(c);

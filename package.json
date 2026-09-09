@@ -36,6 +36,7 @@
     "@prisma/client": "^5.22.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
     "@types/multer": "^2.2.0",
     "@types/node": "^22.14.0",
     "@types/pdf-parse": "^1.1.5",
@@ -46,6 +47,8 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.23.13",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "vitest": "^5.0.0",
+    "vitest-mock-extended": "^5.1.1"
   }
 }

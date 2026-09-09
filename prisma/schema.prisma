@@ -61,6 +61,8 @@ model Concept {
   confusionsAsSource ConceptConfusionStat[] @relation("ConceptConfusions")
   confusionsAsTarget ConceptConfusionStat[] @relation("ConfusedWith")
 
+  comprehensionFeedbacks ComprehensionFeedback[]
+
   @@schema("qestudo")
 }
 
@@ -156,9 +158,10 @@ model Answer {
   timeSpent        Int      @default(0)
   timestamp        DateTime @default(now())
 
-  session        StudySession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  question       Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  selectedOption QuestionOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+  session        StudySession           @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  question       Question               @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption QuestionOption?        @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+  comprehension  ComprehensionFeedback?
 
   @@unique([sessionId, questionId])
   @@schema("qestudo")
@@ -181,8 +184,13 @@ model ConceptMastery {
   nextReviewAt              DateTime?
   currentReviewIntervalDays Int       @default(0)
   updatedAt                 DateTime  @default(now()) @updatedAt
+  understoodCount           Int       @default(0)
+  partialUnderstandingCount Int       @default(0)
+  notUnderstoodCount        Int       @default(0)
+  lastComprehensionFeedback String?
+  lastComprehensionAt       DateTime?
 
-  concept                   Concept   @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+  concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
 
   @@schema("qestudo")
 }
@@ -306,5 +314,18 @@ model ConceptConfusionStat {
   confusedWith Concept @relation("ConfusedWith", fields: [confusedWithConceptId], references: [id], onDelete: Cascade)
 
   @@unique([conceptId, confusedWithConceptId])
+  @@schema("qestudo")
+}
+
+model ComprehensionFeedback {
+  id        String   @id @default(uuid())
+  answerId  String   @unique
+  conceptId String?
+  feedback  String // 'understood', 'partial', 'not_understood'
+  createdAt DateTime @default(now())
+
+  answer  Answer   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  concept Concept? @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
   @@schema("qestudo")
 }
