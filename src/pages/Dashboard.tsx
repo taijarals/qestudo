@@ -38,7 +38,7 @@ export function Dashboard() {
           <Card className="p-8">
             <div className="flex items-center justify-between">
               <div className="flex flex-col items-center">
-                <CircularProgress value={68} colorClass="text-green-500" />
+                <CircularProgress value={0} colorClass="text-green-500" />
                 <h3 className="font-bold text-lg mt-4 text-slate-900">Domínio geral</h3>
                 <p className="text-sm text-slate-500 text-center">Seu progresso em todos<br />os materiais</p>
               </div>
@@ -46,22 +46,22 @@ export function Dashboard() {
               <div className="grid grid-cols-2 gap-8 flex-1 ml-12">
                 <div className="flex flex-col items-center p-4 bg-slate-50 rounded-xl">
                   <Target className="w-8 h-8 text-blue-500 mb-2" />
-                  <span className="text-2xl font-bold text-slate-900">1.248</span>
+                  <span className="text-2xl font-bold text-slate-900">--</span>
                   <span className="text-sm text-slate-500">Questões respondidas</span>
                 </div>
                 <div className="flex flex-col items-center p-4 bg-slate-50 rounded-xl">
                   <CheckCircle2 className="w-8 h-8 text-green-500 mb-2" />
-                  <span className="text-2xl font-bold text-slate-900">76%</span>
+                  <span className="text-2xl font-bold text-slate-900">--</span>
                   <span className="text-sm text-slate-500">Taxa de acerto</span>
                 </div>
                 <div className="flex flex-col items-center p-4 bg-slate-50 rounded-xl">
                   <AlertTriangle className="w-8 h-8 text-amber-500 mb-2" />
-                  <span className="text-2xl font-bold text-slate-900">3</span>
+                  <span className="text-2xl font-bold text-slate-900">--</span>
                   <span className="text-sm text-slate-500">Conceitos em risco</span>
                 </div>
                 <div className="flex flex-col items-center p-4 bg-slate-50 rounded-xl">
                   <Calendar className="w-8 h-8 text-orange-500 mb-2" />
-                  <span className="text-2xl font-bold text-slate-900">12</span>
+                  <span className="text-2xl font-bold text-slate-900">--</span>
                   <span className="text-sm text-slate-500">Revisões pendentes</span>
                 </div>
               </div>

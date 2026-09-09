@@ -134,7 +134,7 @@ export function Materials() {
        return <Badge variant="warning">{label}</Badge>;
     }
     if (status === 'uploaded') return <Badge variant="outline">Pronto para processar</Badge>;
-    if (status === 'ready_for_mapping') return <Badge variant="outline">Texto extraído. Pronto para analisar</Badge>;
+    if (status === 'ready_for_mapping') return <Badge variant="outline">Texto extraído — pronto para analisar</Badge>;
     return <Badge variant="outline">{status}</Badge>;
   };
 
@@ -211,7 +211,7 @@ export function Materials() {
                       {getStatusBadge(material.status)}
                       {ERROR_STATES.includes(material.status) && (
                          <span className="text-sm text-red-600 flex items-center gap-1">
-                           <AlertTriangle className="w-4 h-4" /> Não foi possível processar este PDF.
+                           <AlertTriangle className="w-4 h-4" /> {material.status === 'mapping_error' ? 'PDF processado, mas ocorreu um erro ao analisar o conteúdo.' : 'Não foi possível processar este PDF.'}
                          </span>
                       )}
                     </div>

@@ -1,3 +1,4 @@
+import { getGeminiModel } from '../config/gemini';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { prisma } from '../database/prisma';
 import { questionValidationPrompt, QUESTION_VALIDATION_PROMPT_VERSION } from '../ai/prompts/questionValidationPrompt';
@@ -95,7 +96,7 @@ export class QuestionValidatorService {
     });
 
     const chunksText = chunks.map(c => `[Chunk: ${c.id}]\n${c.text}`).join('\n\n');
-    const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const model = getGeminiModel();
 
     const responseSchema: Schema = {
       type: Type.OBJECT,

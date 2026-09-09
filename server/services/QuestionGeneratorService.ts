@@ -1,3 +1,4 @@
+import { getGeminiModel } from '../config/gemini';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { prisma } from '../database/prisma';
 import { questionGenerationPrompt, QUESTION_GENERATION_PROMPT_VERSION } from '../ai/prompts/questionGenerationPrompt';
@@ -41,7 +42,7 @@ export class QuestionGeneratorService {
       }
 
       const chunksText = chunks.map(c => `[Chunk: ${c.id}]\n${c.text}`).join('\n\n');
-      const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+      const model = getGeminiModel();
 
       let responseSchema: Schema;
       let promptComplement = '';

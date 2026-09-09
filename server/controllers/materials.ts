@@ -28,9 +28,9 @@ export const materialController = {
       try {
         const newMaterial = await MaterialService.create({
           id: materialId,
-          title: file.originalname.replace(/\.pdf$/i, ''),
+          title: Buffer.from(file.originalname, 'latin1').toString('utf8').replace(/\.pdf$/i, ''),
           description: '',
-          fileName: file.originalname,
+          fileName: Buffer.from(file.originalname, 'latin1').toString('utf8'),
           storagePath: storagePath,
           fileSize: file.size,
           mimeType: file.mimetype,

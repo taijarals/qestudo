@@ -1,3 +1,4 @@
+import { getGeminiModel } from '../config/gemini';
 import { GoogleGenAI, Type, Schema } from '@google/genai';
 import { prisma } from '../database/prisma';
 import { conceptMappingPrompt, CONCEPT_MAPPING_PROMPT_VERSION } from '../ai/prompts/conceptMappingPrompt';
@@ -45,7 +46,7 @@ export class ConceptMappingService {
       // 3000 chars * 10 chunks = 30k chars, well within 1M tokens.
       const chunksText = chunks.map(c => `[Chunk ID: ${c.id} | Pages: ${c.pageStart}-${c.pageEnd}]\n${c.text}`).join('\n\n');
 
-      const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+      const model = getGeminiModel();
       
       const responseSchema: Schema = {
         type: Type.OBJECT,
