@@ -103,4 +103,4 @@ apiRouter.patch('/study-sessions/:id', studySessionController.update);
 apiRouter.get('/study-sessions/:id/answers', studySessionController.getAnswers);
 
 // Answers
-apiRouter.post('/answers', studySessionController.submitAnswer);
+

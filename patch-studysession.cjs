@@ -1,4 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+const fs = require('fs');
+
+let code = `import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
@@ -36,7 +38,7 @@ export function StudySession() {
     setStatus('loading');
     setErrorMsg('');
     try {
-      const res = await fetch(`/api/study-sessions/${activeSession.id}/next-question`, {
+      const res = await fetch(\`/api/study-sessions/\${activeSession.id}/next-question\`, {
         method: 'POST'
       });
       if (!res.ok) {
@@ -74,7 +76,7 @@ export function StudySession() {
 
     // add to local context
     addAnswer({
-      id: `local_${Date.now()}`,
+      id: \`local_\${Date.now()}\`,
       sessionId: activeSession.id,
       questionId: question.id,
       selectedOptionId: isDontKnow ? undefined : selectedOption || undefined,
@@ -104,7 +106,7 @@ export function StudySession() {
         // nos precisamos de um jeito de pegar a explaination. Mas o validator service da questao
         // ja tem explanation guardado no bd na verdade. 
         // Vamos dar fetch na questao de novo para pegar explanation
-        const qRes = await fetch(`/api/questions/${question.id}`);
+        const qRes = await fetch(\`/api/questions/\${question.id}\`);
         if (qRes.ok) {
            const fullQ = await qRes.json();
            setQuestion(fullQ);
@@ -122,7 +124,7 @@ export function StudySession() {
     updateAnswerFeedback(question.id, feedback);
     if (answerId) {
        try {
-         await fetch(`/api/answers/${answerId}/comprehension`, {
+         await fetch(\`/api/answers/\${answerId}/comprehension\`, {
            method: 'POST',
            headers: { 'Content-Type': 'application/json' },
            body: JSON.stringify({ feedback })
@@ -401,4 +403,12 @@ export function StudySession() {
       </div>
     </div>
   );
+}
+`;
+
+fs.writeFileSync('src/pages/StudySession.tsx', code);
+
+// remove hook since it's in the component now
+if (fs.existsSync('src/hooks/useStudyEngine.ts')) {
+  fs.unlinkSync('src/hooks/useStudyEngine.ts');
 }

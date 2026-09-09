@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+const fs = require('fs');
+
+const code = `import React, { useState, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Play, Settings, Minus, Plus, ArrowRight } from 'lucide-react';
@@ -171,3 +173,6 @@ export function StudyConfig() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('src/pages/StudyConfig.tsx', code);

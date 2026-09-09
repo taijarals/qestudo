@@ -1,4 +1,5 @@
-import React from 'react';
+const fs = require('fs');
+const code = `import React from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { CircularProgress } from '../components/ui/CircularProgress';
@@ -22,25 +23,6 @@ export function SessionResult() {
   }
 
   const total = activeSession.quantity || answers.length;
-  
-  // Calculate basic stats for composition (not complete questions, but based on session setup or answers)
-  const boardStats: Record<string, number> = {};
-  const typeStats: Record<string, number> = {};
-  
-  if (activeSession.boards) {
-    activeSession.boards.forEach(b => boardStats[b] = total);
-  }
-  
-  if (activeSession.questionTypes) {
-    activeSession.questionTypes.forEach(t => typeStats[t] = total);
-  }
-  
-  const formatQuestionType = (t: string) => {
-    if (t === 'certo-errado') return 'Certo / Errado';
-    if (t === 'multipla-escolha') return 'Múltipla Escolha';
-    return t;
-  };
-
   const answered = answers.length;
   const correct = answers.filter(a => a.isCorrect).length;
   const dontKnow = answers.filter(a => a.responseType === 'dont_know').length;
@@ -54,7 +36,7 @@ export function SessionResult() {
     const ms = end.getTime() - start.getTime();
     const mins = Math.floor(ms / 60000);
     const secs = Math.floor((ms % 60000) / 1000);
-    durationText = `${mins}m ${secs}s`;
+    durationText = \`\${mins}m \${secs}s\`;
   }
 
   const handleFinish = () => {
@@ -121,3 +103,5 @@ export function SessionResult() {
     </div>
   );
 }
+`;
+fs.writeFileSync('src/pages/SessionResult.tsx', code);

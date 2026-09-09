@@ -69,10 +69,9 @@ export function MaterialDetails() {
       if (res.ok) {
         const data = await res.json();
         setProcessingStats({ progress: data.processingProgress, error: data.processingError, chunks: data.chunkCount });
-        if (material) {
-           setMaterial({ ...material, status: data.status, pageCount: data.pageCount });
+        // removed if (material)
+           setMaterial(prev => prev ? { ...prev, status: data.status, pageCount: data.pageCount } : prev);
         }
-      }
     } catch (e) {
       console.error(e);
     }
@@ -328,6 +327,14 @@ export function MaterialDetails() {
 
 
 
+            {material.status === 'ready' && (
+              <div className="pt-2">
+                <Button onClick={() => navigate(`/estudar?materialId=${material.id}`)} className="flex items-center gap-2">
+                   <GraduationCap className="w-4 h-4" />
+                   Estudar este material
+                </Button>
+              </div>
+            )}
             {material.status === 'ready_for_mapping' && (
               <div className="pt-2">
                 <Button onClick={handleMapConcepts} disabled={isProcessing} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white">
