@@ -64,7 +64,8 @@ export class QuestionBatchGenerationService {
       return;
     }
 
-    const coverageTypes = ['definition', 'comparison', 'example', 'application', 'exception', 'constitutional_basis'];
+    const coverageTypes = ['definition', 'comparison', 'example', 'application', 'exception', 'constitutional_basis', 'relationship', 'interpretation', 'confusable_concept'];
+    
     let generated = 0;
     let validated = 0;
     let rejected = 0;
@@ -73,21 +74,44 @@ export class QuestionBatchGenerationService {
     const maxAttempts = batch.requestedQuantity * 3;
     let attempts = 0;
 
+    // Fetch existing questions to prioritize less explored concepts/types
+    const existingQuestions = await prisma.question.findMany({
+      where: { materialId: batch.materialId, validationStatus: 'validated', conceptId: { in: conceptIds } },
+      select: { conceptId: true, coverageType: true }
+    });
+
+    const conceptCounts = conceptIds.reduce((acc, id) => ({ ...acc, [id]: 0 }), {} as Record<string, number>);
+    const typeCounts = coverageTypes.reduce((acc, t) => ({ ...acc, [t]: 0 }), {} as Record<string, number>);
+
+    existingQuestions.forEach(q => {
+      if (q.conceptId && conceptCounts[q.conceptId] !== undefined) conceptCounts[q.conceptId]++;
+      if (q.coverageType && typeCounts[q.coverageType] !== undefined) typeCounts[q.coverageType]++;
+    });
+
+    const sortedConcepts = [...conceptIds].sort((a, b) => conceptCounts[a] - conceptCounts[b]);
+    const sortedTypes = [...coverageTypes].sort((a, b) => typeCounts[a] - typeCounts[b]);
+
     while (validated < batch.requestedQuantity && attempts < maxAttempts) {
       attempts++;
       
-      // Select a random concept and coverage type to diversify
-      const cId = conceptIds[Math.floor(Math.random() * conceptIds.length)];
-      const cType = coverageTypes[Math.floor(Math.random() * coverageTypes.length)];
+      // Select best concept (random among those with lowest count)
+      const minConceptCount = conceptCounts[sortedConcepts[0]];
+      const bestConcepts = sortedConcepts.filter(c => conceptCounts[c] === minConceptCount);
+      const cId = bestConcepts[Math.floor(Math.random() * bestConcepts.length)];
+      
+      // Select best type
+      const minTypeCount = typeCounts[sortedTypes[0]];
+      const bestTypes = sortedTypes.filter(t => typeCounts[t] === minTypeCount);
+      const cType = bestTypes[Math.floor(Math.random() * bestTypes.length)];
 
       try {
         // Create plan
-        const plan = await this.planner.createPlan({
+        const plan = await this.planner.planQuestion({
           materialId: batch.materialId,
           conceptId: cId,
-          board: batch.board,
-          questionType: batch.questionType,
-          difficulty: 'medium' // simplificando
+          board: batch.board as any,
+          questionType: batch.questionType as any,
+          difficulty: 'media'
         });
 
         // Add batchId and coverageType to plan
@@ -97,7 +121,9 @@ export class QuestionBatchGenerationService {
         });
 
         // Generate
-        const questionId = await this.generator.generateFromPlan(plan.id);
+        const generatedQ = await this.generator.generateQuestion(plan.id);
+        if (!generatedQ) throw new Error('Generation failed');
+        const questionId = generatedQ.id;
         generated++;
 
         // Add coverageType to generated question
@@ -109,15 +135,22 @@ export class QuestionBatchGenerationService {
         // Validate
         const valResult = await this.validator.validateQuestion(questionId);
 
-        if (valResult.status === 'validated') {
+        if (valResult.validationStatus === 'validated') {
           // Check simple text deduplication
           const question = await prisma.question.findUnique({ where: { id: questionId } });
           const isDup = await this.isDuplicate(question!.statement, batch.materialId, questionId);
+          
           if (isDup) {
             await prisma.question.update({ where: { id: questionId }, data: { validationStatus: 'duplicate' } });
             duplicates++;
           } else {
             validated++;
+            
+            // Update heuristic counts
+            conceptCounts[cId]++;
+            typeCounts[cType]++;
+            sortedConcepts.sort((a, b) => conceptCounts[a] - conceptCounts[b]);
+            sortedTypes.sort((a, b) => typeCounts[a] - typeCounts[b]);
           }
         } else {
           rejected++;
@@ -160,12 +193,10 @@ export class QuestionBatchGenerationService {
     const questions = await prisma.question.findMany({
       where: { materialId, validationStatus: 'validated', id: { not: currentId } }
     });
-    // very basic deduplication: > 80% similarity or identical after lowercasing
     const stmt = statement.toLowerCase().trim();
     for (const q of questions) {
       const existingStmt = q.statement.toLowerCase().trim();
       if (stmt === existingStmt) return true;
-      // crude substring match
       if (stmt.includes(existingStmt) || existingStmt.includes(stmt)) return true;
     }
     return false;

@@ -3,447 +3,361 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
-import { ProgressBar } from '../components/ui/ProgressBar';
 import { materialService } from '../services';
-import { ArrowLeft, ChevronDown, ChevronRight, FileText, Target, BookOpen, FileQuestion, GraduationCap, Play, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, ChevronRight, FileText, Target, BookOpen, FileQuestion, Sparkles, Loader2, Play } from 'lucide-react';
 import { ENV } from '../config/env';
-import { Concept, ConceptMastery, Material, Question } from '../domain';
-import { cn } from '../lib/utils';
+import { Concept, Material, Question } from '../domain';
 import { BatchGenerationModal } from '../components/BatchGenerationModal';
+import { ViewQuestionsModal } from '../components/ViewQuestionsModal';
 
 interface ConceptNode {
   concept: Concept;
-  mastery?: ConceptMastery;
   children: ConceptNode[];
-  questionCount: number;
+  leafConceptIds: string[];
 }
 
 export function MaterialDetails() {
   const { materialId } = useParams();
   const navigate = useNavigate();
   
-  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({
-    'c1': true,
-    'c2': true,
-    'c3': true
-  });
-
+  const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
   const [material, setMaterial] = useState<Material | undefined>();
   const [concepts, setConcepts] = useState<Concept[]>([]);
-  const [masteries, setMasteries] = useState<ConceptMastery[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [coverageTree, setCoverageTree] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStats, setProcessingStats] = useState<{progress: number, error?: string, chunks?: number} | null>(null);
-  const [coverageTree, setCoverageTree] = useState<any>(null);
+  
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [batchScope, setBatchScope] = useState<{id: string, name: string, type: string} | null>(null);
+  
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewScope, setViewScope] = useState<{name: string, questions: Question[]} | null>(null);
 
-  useEffect(() => {
+  const loadData = async () => {
     if (!materialId) return;
-
-    const loadData = async () => {
-      setLoading(true);
+    setLoading(true);
+    
+    try {
       const m = await materialService.getMaterialById(materialId);
       const c = await materialService.getMaterialConcepts(materialId);
-      const mats = await materialService.getMaterialMasteries();
       const qts = await materialService.getQuestionsByMaterial(materialId);
       
       setMaterial(m);
       setConcepts(c);
-      setMasteries(mats);
       setQuestions(qts);
-      setLoading(false);
       
-      try {
-        const covRes = await fetch(`${ENV.API_URL}/materials/${materialId}/coverage-tree`);
-        if (covRes.ok) setCoverageTree(await covRes.json());
-      } catch (e) { console.error(e); }
+      const covRes = await fetch(`${ENV.API_URL}/materials/${materialId}/coverage-tree`);
+      if (covRes.ok) setCoverageTree(await covRes.json());
+      
+      setLoading(false);
       
       if (m?.status === 'extracting' || m?.status === 'chunking' || m?.status === 'mapping_concepts') {
         setIsProcessing(true);
         pollProcessingStatus(m.id);
       } else if (m?.status === 'ready_for_mapping' || m?.status === 'ready') {
         fetchStats(m.id);
+        
+        // Auto expand top level nodes initially
+        const roots = c.filter(x => !x.parentId);
+        const toExpand: Record<string, boolean> = {};
+        roots.forEach(r => {
+          toExpand[r.id] = true;
+          c.filter(x => x.parentId === r.id).forEach(sub => toExpand[sub.id] = true);
+        });
+        setExpandedNodes(prev => ({ ...toExpand, ...prev }));
       }
-    };
+    } catch (e) {
+      console.error(e);
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadData();
   }, [materialId]);
 
+  const pollProcessingStatus = (id: string) => {
+    const interval = setInterval(async () => {
+      const m = await materialService.getMaterialById(id);
+      setMaterial(m);
+      fetchStats(id);
+      
+      if (m?.status !== 'extracting' && m?.status !== 'chunking' && m?.status !== 'mapping_concepts') {
+        setIsProcessing(false);
+        clearInterval(interval);
+        loadData();
+      }
+    }, 3000);
+  };
 
   const fetchStats = async (id: string) => {
     try {
-      const res = await fetch(`${ENV.API_URL}/materials/${id}/processing-status`);
+      const res = await fetch(`${ENV.API_URL}/materials/${id}/processing-stats`);
       if (res.ok) {
-        const data = await res.json();
-        setProcessingStats({ progress: data.processingProgress, error: data.processingError, chunks: data.chunkCount });
-        // removed if (material)
-           setMaterial(prev => prev ? { ...prev, status: data.status, pageCount: data.pageCount } : prev);
-        }
-    } catch (e) {
-      console.error(e);
-    }
+        setProcessingStats(await res.json());
+      }
+    } catch (e) { console.error(e); }
   };
 
-  const pollProcessingStatus = (id: string) => {
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`${ENV.API_URL}/materials/${id}/processing-status`);
-        if (res.ok) {
-          const data = await res.json();
-          setProcessingStats({ progress: data.processingProgress, error: data.processingError, chunks: data.chunkCount });
-          
-          setMaterial(prev => prev ? { ...prev, status: data.status, pageCount: data.pageCount } : prev);
-
-          if (['ready_for_mapping', 'error', 'processing_error', 'ready', 'mapping_error', 'pdf_requires_ocr'].includes(data.status)) {
-            clearInterval(interval);
-            setIsProcessing(false);
-          }
-        }
-      } catch (error) {
-        console.error('Polling error', error);
-      }
-    }, 2000);
+  const toggleNode = (id: string) => {
+    setExpandedNodes(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-
-  const handleMapConcepts = async () => {
-    if (!material) return;
-    setIsProcessing(true);
-    try {
-      const res = await fetch(`${ENV.API_URL}/materials/${material.id}/map-concepts`, { method: 'POST' });
-      if (res.ok) {
-         setMaterial({ ...material, status: 'mapping_concepts' });
-         pollProcessingStatus(material.id);
-      } else {
-         const err = await res.json();
-         alert(err.error || 'Erro ao iniciar mapeamento');
-         setIsProcessing(false);
-      }
-    } catch (error) {
-       console.error(error);
-       alert('Erro de rede');
-       setIsProcessing(false);
-    }
-  };
-
-  const handleProcessMaterial = async () => {
-    if (!material) return;
-    setIsProcessing(true);
-    try {
-      const res = await fetch(`${ENV.API_URL}/materials/${material.id}/process`, { method: 'POST' });
-      if (res.ok) {
-         setMaterial({ ...material, status: 'extracting' });
-         pollProcessingStatus(material.id);
-      } else {
-         const err = await res.json();
-         alert(err.error || 'Erro ao iniciar processamento');
-         setIsProcessing(false);
-      }
-    } catch (error) {
-       console.error(error);
-       alert('Erro de rede');
-       setIsProcessing(false);
-    }
+  const handleStudyMaterial = () => {
+    navigate(`/estudo/configurar?material=${materialId}`);
   };
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500">Carregando...</div>;
-  }
-
-  if (!material) {
     return (
-      <div className="p-8 text-center">
-        <h2 className="text-xl font-bold">Material não encontrado</h2>
-        <Button onClick={() => navigate('/materiais')} className="mt-4">Voltar</Button>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
       </div>
     );
   }
 
-  // Calculate question count per concept
-  const questionCountByConcept: Record<string, number> = {};
-  concepts.forEach(c => {
-    // Just a mock logic: if we don't have real questions, let's derive a number or use real mock questions
-    const count = questions.filter(q => q.conceptId === c.id).length;
-    // To make the UI look rich, we'll fallback to a pseudo-random number if count is 0
-    questionCountByConcept[c.id] = questions.filter(q => q.conceptId === c.id && q.validationStatus === 'validated').length;
-  });
+  if (!material) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-xl font-bold text-slate-900 mb-2">Material não encontrado</h2>
+        <Button variant="outline" onClick={() => navigate('/materiais')}>Voltar aos materiais</Button>
+      </div>
+    );
+  }
 
   const buildTree = (parentId?: string): ConceptNode[] => {
     return concepts
       .filter(c => c.parentId === parentId)
       .map(c => {
         const children = buildTree(c.id);
-        const mastery = masteries.find(m => m.conceptId === c.id);
-        const childrenQCount = children.reduce((acc, child) => acc + child.questionCount, 0);
-        
-        return {
-          concept: c,
-          mastery,
-          children,
-          questionCount: questionCountByConcept[c.id] + childrenQCount
-        };
+        const leafConceptIds = c.level === 'concept' ? [c.id] : children.flatMap(ch => ch.leafConceptIds);
+        return { concept: c, children, leafConceptIds };
       });
   };
 
   const conceptTree = buildTree(undefined);
 
-  const toggleNode = (nodeId: string) => {
-    setExpandedNodes(prev => ({ ...prev, [nodeId]: !prev[nodeId] }));
-  };
-
-  const handleStudyConcept = (conceptId: string) => {
-    navigate('/estudar', { 
-      state: { 
-        materialId: material.id, 
-        mode: 'specific', 
-        conceptId 
-      } 
-    });
-  };
-
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'mastered': return 'text-green-700 bg-green-50 border-green-200';
-      case 'consolidating': return 'text-blue-700 bg-blue-50 border-blue-200';
-      case 'learning': return 'text-amber-700 bg-amber-50 border-amber-200';
-      case 'review_needed': return 'text-red-700 bg-red-50 border-red-200';
-      default: return 'text-slate-700 bg-slate-50 border-slate-200';
-    }
-  };
-
-  const getStatusText = (status?: string) => {
-    switch (status) {
-      case 'mastered': return 'Dominado';
-      case 'consolidating': return 'Consolidando';
-      case 'learning': return 'Aprendendo';
-      case 'review_needed': return 'Revisar';
-      default: return 'Não visto';
-    }
+  const getQuestionsForNode = (node: ConceptNode) => {
+    return questions.filter(q => q.validationStatus === 'validated' && node.leafConceptIds.includes(q.conceptId));
   };
 
   const renderConceptNode = (node: ConceptNode, depth = 0) => {
     const isExpanded = expandedNodes[node.concept.id];
     const hasChildren = node.children.length > 0;
-    const score = node.mastery?.masteryScore ?? 0;
+    
+    const cov = coverageTree?.nodes?.[node.concept.id];
+    const capacity = cov?.estimatedQuestionCapacity || 0;
+    const validatedCount = cov?.validatedQuestionCount || 0;
+    const coverage = cov?.coverage || 0;
+    const potential = cov?.remainingPotential || 'high';
+
+    const potentialText = { high: 'Alto', medium: 'Médio', low: 'Baixo', exhausted: 'Praticamente esgotado' }[potential as string] || 'Alto';
+    
+    // Only show as card if it's a discipline, topic, or subtopic. Leaf concepts can be simpler.
+    if (node.concept.level === 'concept') {
+      return (
+        <div key={node.concept.id} className="py-2 flex items-center justify-between border-b border-slate-50 last:border-0 pl-2">
+           <div className="flex items-center gap-2">
+             <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+             <span className="text-sm font-medium text-slate-700">{node.concept.name}</span>
+           </div>
+           <div className="flex items-center gap-4 text-xs text-slate-500">
+             <span>{validatedCount} qts</span>
+             <span className="w-16 text-right font-semibold text-blue-600">{coverage}% expl.</span>
+           </div>
+        </div>
+      );
+    }
 
     return (
-      <div key={node.concept.id} className="border-b border-slate-100 last:border-0">
-        <div 
-          className={cn(
-            "flex items-center p-4 hover:bg-slate-50 transition-colors group",
-            depth === 0 ? "bg-white" : "bg-slate-50/50"
-          )}
-          style={{ paddingLeft: `${(depth * 1.5) + 1}rem` }}
-        >
-          {/* Expander Icon */}
-          <div className="w-6 shrink-0 flex items-center justify-center">
-            {hasChildren && (
-              <button 
-                onClick={() => toggleNode(node.concept.id)}
-                className="p-1 hover:bg-slate-200 rounded text-slate-500 transition-colors"
-              >
-                {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              </button>
-            )}
-          </div>
+      <div key={node.concept.id} className={`mb-4 ${depth > 0 ? 'ml-4 sm:ml-8' : 'mt-6'}`}>
+        <Card className={`overflow-hidden border ${depth === 0 ? 'border-slate-300 shadow-sm' : 'border-slate-200'}`}>
+          <div className={`p-4 ${depth === 0 ? 'bg-slate-50/50' : 'bg-white'}`}>
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+              <div className="flex-1 w-full">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] sm:text-xs font-bold tracking-wider text-blue-600 uppercase bg-blue-50 px-2 py-0.5 rounded">
+                    {node.concept.level === 'discipline' ? 'Matéria' : node.concept.level === 'topic' ? 'Assunto' : node.concept.level === 'subtopic' ? 'Subassunto' : 'Conceito'}
+                  </span>
+                  <h3 className={`font-bold text-slate-900 ${depth === 0 ? 'text-lg' : 'text-base'}`}>
+                    {node.concept.name}
+                  </h3>
+                </div>
 
-          {/* Title */}
-          <div className="flex-1 min-w-0 pr-4">
-            <h4 className={cn("truncate", depth === 0 ? "font-bold text-slate-900" : "font-medium text-slate-700")}>
-              <span className="text-slate-500 font-normal mr-2">
-                {node.concept.level === 'discipline' ? 'Matéria:' : node.concept.level === 'topic' ? 'Assunto:' : node.concept.level === 'subtopic' ? 'Subassunto:' : 'Conceito:'}
-              </span>
-              {node.concept.name}
-            </h4>
-          </div>
-
-          {/* Stats & Actions */}
-          <div className="flex items-center gap-6 shrink-0">
-            <div className="hidden sm:flex flex-col text-xs text-slate-500 w-28 text-right">
-              <span className="font-semibold text-slate-700">{coverageTree?.nodes?.[node.concept.id]?.validatedQuestionCount || 0} questões</span>
-              <span>{coverageTree?.nodes?.[node.concept.id]?.coverage || 0}% explorado</span>
-            </div>
-
-            <div className="hidden md:block w-28">
-              <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full border", getStatusColor(node.mastery?.status))}>
-                {getStatusText(node.mastery?.status)}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-3 w-32">
-              <div className="flex-1 hidden sm:block">
-                <ProgressBar value={score} colorClass={score >= 70 ? 'bg-green-500' : score >= 50 ? 'bg-amber-400' : 'bg-red-500'} />
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Conceitos</p>
+                    <p className="text-sm font-semibold text-slate-700">{node.leafConceptIds.length}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Questões Validadas</p>
+                    <p className="text-sm font-semibold text-slate-700">{validatedCount}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400" title="Estimativa baseada no tamanho do núcleo e complexidade">Capacidade Estimada</p>
+                    <p className="text-sm font-semibold text-slate-700">~{capacity} questões</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Cobertura Estimada</p>
+                    <p className="text-sm font-bold text-blue-600">{coverage}%</p>
+                    <p className="text-[10px] text-slate-500 font-medium">Potencial: {potentialText}</p>
+                  </div>
+                </div>
               </div>
-              <span className="text-sm font-bold text-slate-700 w-10 text-right">{score}%</span>
+
+              <div className="flex flex-row lg:flex-col gap-2 shrink-0 w-full lg:w-36 mt-2 lg:mt-0">
+                <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm" onClick={() => { setBatchScope({ id: node.concept.id, name: node.concept.name, type: node.concept.level || 'concept' }); setIsBatchModalOpen(true); }}>
+                  Gerar questões
+                </Button>
+                <Button size="sm" variant="outline" className="w-full" onClick={() => { setViewScope({ name: node.concept.name, questions: getQuestionsForNode(node) }); setIsViewModalOpen(true); }}>
+                  Ver questões
+                </Button>
+                {hasChildren && (
+                  <Button size="sm" variant="ghost" className="w-full text-slate-500 hidden lg:flex" onClick={() => toggleNode(node.concept.id)}>
+                    {isExpanded ? 'Ocultar detalhes' : 'Ver detalhes'}
+                  </Button>
+                )}
+                {hasChildren && (
+                  <Button size="sm" variant="ghost" className="w-full text-slate-500 flex lg:hidden" onClick={() => toggleNode(node.concept.id)}>
+                    {isExpanded ? <ChevronUp className="w-4 h-4"/> : <ChevronDown className="w-4 h-4" />}
+                  </Button>
+                )}
+              </div>
             </div>
-            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleStudyConcept(node.concept.id); }}>Estudar</Button>
-            <Button variant="default" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={(e) => { e.stopPropagation(); setBatchScope({id: node.concept.id, name: node.concept.name, type: node.concept.level || 'concept'}); setIsBatchModalOpen(true); }}>Gerar</Button>
-
-            <Button 
-              size="sm" 
-              variant="outline" 
-              className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity"
-              onClick={() => handleStudyConcept(node.concept.id)}
-            >
-              Estudar
-            </Button>
           </div>
-        </div>
-
-        {/* Children */}
-        {hasChildren && isExpanded && (
-          <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-            {node.children.map(child => renderConceptNode(child, depth + 1))}
-          </div>
-        )}
+          
+          {isExpanded && hasChildren && (
+            <div className="p-2 sm:p-4 border-t border-slate-100 bg-white">
+              {node.children.map(child => renderConceptNode(child, depth + 1))}
+            </div>
+          )}
+        </Card>
       </div>
     );
   };
 
-  return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <button 
-        onClick={() => navigate('/materiais')}
-        className="flex items-center text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4 mr-1" /> Voltar para materiais
-      </button>
+  const disciplines = conceptTree.filter(n => n.concept.level === 'discipline');
+  const renderedTree = disciplines.length > 0 ? disciplines : conceptTree;
 
-      {/* Header Info */}
-      <Card className="p-8">
-        <div className="flex flex-col md:flex-row gap-8">
-          <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center shrink-0 border border-blue-100">
-            <FileText className="w-8 h-8 text-blue-600" />
+  return (
+    <div className="max-w-5xl mx-auto space-y-6 pb-12">
+      <div className="flex items-center gap-4">
+        <button 
+          onClick={() => navigate('/materiais')}
+          className="p-2 -ml-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">{material.title}</h1>
+          <p className="text-sm text-slate-500 mt-1">Visão geral do material e exploração de questões</p>
+        </div>
+      </div>
+
+      {isProcessing && (
+        <Card className="p-6 border-blue-100 bg-blue-50/50">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+              <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900">
+                {material.status === 'extracting' ? 'Extraindo texto do PDF...' : 
+                 material.status === 'chunking' ? 'Analisando estrutura...' : 
+                 'Mapeando conceitos...'}
+              </h3>
+              <p className="text-sm text-slate-600">Este processo pode levar alguns minutos.</p>
+            </div>
           </div>
           
-          <div className="flex-1 space-y-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl font-bold text-slate-900">{material.title}</h1>
-                {material.status === 'ready' ? (
-                  <Badge variant="success">Processado</Badge>
-                ) : material.status === 'ready_for_mapping' ? (
-                  <Badge variant="success" className="bg-emerald-100 text-emerald-700">Conteúdo pronto para análise</Badge>
-                ) : material.status === 'uploaded' ? (
-                  <Badge variant="outline">Aguardando processamento</Badge>
-                ) : material.status === 'error' ? (
-                  <Badge variant="danger">Erro no processamento</Badge>
-                ) : (
-                  <Badge variant="warning">
-                     {material.status === 'extracting' ? 'Extraindo texto...' : material.status === 'mapping_concepts' ? 'Identificando assuntos e conceitos...' : 'Preparando conteúdo...'}
-                  </Badge>
-                )}
+          {processingStats && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="font-medium text-slate-700">Progresso</span>
+                <span className="text-blue-600 font-bold">{Math.round(processingStats.progress)}%</span>
               </div>
-              <p className="text-slate-500">{material.fileName}</p>
-            </div>
-
-
-
-            {material.status === 'ready' && (
-              <div className="pt-2">
-                <Button onClick={() => navigate(`/estudar?materialId=${material.id}`)} className="flex items-center gap-2">
-                   <GraduationCap className="w-4 h-4" />
-                   Estudar este material
-                </Button>
+              <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-600 rounded-full transition-all duration-500"
+                  style={{ width: `${processingStats.progress}%` }}
+                />
               </div>
-            )}
-            {material.status === 'ready_for_mapping' && (
-              <div className="pt-2">
-                <Button onClick={handleMapConcepts} disabled={isProcessing} className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white">
-                   {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                   {isProcessing ? 'Iniciando análise...' : 'Analisar conteúdo'}
-                </Button>
-              </div>
-            )}
-            {material.status === 'uploaded' && (
-              <div className="pt-2">
-                <Button onClick={handleProcessMaterial} disabled={isProcessing} className="flex items-center gap-2">
-                   {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-                   {isProcessing ? 'Iniciando...' : 'Processar material'}
-                </Button>
-              </div>
-            )}
-            
-            {(material.status === 'extracting' || material.status === 'chunking' || material.status === 'mapping_concepts') && processingStats && (
-               <div className="pt-2 space-y-2">
-                 <div className="flex justify-between text-sm text-slate-500">
-                    <span>Progresso</span>
-                    <span>{processingStats.progress}%</span>
-                 </div>
-                 <ProgressBar value={processingStats.progress} />
-               </div>
-            )}
-
-            {(material.status === 'error' || material.status === 'mapping_error') && processingStats?.error && (
-               <div className="pt-2">
-                 <div className="p-3 bg-red-50 text-red-700 text-sm rounded-md border border-red-100">
-                    Erro: {processingStats.error}
-                 </div>
-               </div>
-            )}
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 pt-6 border-t border-slate-100">
-              <div>
-                <div className="flex items-center gap-2 text-slate-500 mb-1">
-                  <FileText className="w-4 h-4" />
-                  <span className="text-xs uppercase font-semibold tracking-wider">Páginas</span>
-                </div>
-                <span className="text-xl font-bold text-slate-900">{material.pageCount ?? '--'}</span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 text-slate-500 mb-1">
-                  <BookOpen className="w-4 h-4" />
-                  <span className="text-xs uppercase font-semibold tracking-wider">Conceitos</span>
-                </div>
-                <span className="text-xl font-bold text-slate-900">{concepts.filter(c => c.level === 'concept').length || '--'}</span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 text-slate-500 mb-1">
-                  <FileQuestion className="w-4 h-4" />
-                  <span className="text-xs uppercase font-semibold tracking-wider">Questões</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xl font-bold text-slate-900">{questions.filter(q => q.validationStatus === 'validated').length}</span>
-                  <span className="text-[10px] text-slate-400 leading-tight mt-0.5">já armazenadas</span>
-                </div>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 text-slate-500 mb-1">
-                  <GraduationCap className="w-4 h-4" />
-                  <span className="text-xs uppercase font-semibold tracking-wider">Domínio</span>
-                </div>
-                <span className="text-xl font-bold text-slate-900">{material.masteryScore ?? '--'}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      {/* Concept Tree */}
-      <Card className="overflow-hidden">
-        <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Mapa de Conhecimento</h2>
-            <p className="text-sm text-slate-500 mt-1">Explore a estrutura do material e acompanhe seu domínio.</p>
-          </div>
-          <div className="text-right">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Cobertura</span>
-            <span className="text-lg font-bold text-blue-600">{coverageTree?.material?.coverage || 0}%</span>
-          </div>
-        </div>
-
-        <div className="flex flex-col">
-          {conceptTree.length > 0 ? (
-            conceptTree.map(node => renderConceptNode(node))
-          ) : (
-            <div className="p-8 text-center text-slate-500">
-              Nenhum conceito mapeado para este material ainda.
+              {processingStats.chunks !== undefined && (
+                <p className="text-xs text-slate-500 text-right mt-1">
+                  {processingStats.chunks} blocos processados
+                </p>
+              )}
             </div>
           )}
+        </Card>
+      )}
+
+      {(!isProcessing) && (
+        <Card className="p-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Estatísticas do Material</h2>
+              <p className="text-sm text-slate-500">Resumo da extração e banco de questões geradas</p>
+            </div>
+            <div className="flex gap-3">
+              <Button onClick={() => { setBatchScope({ id: material.id, name: 'Material Completo', type: 'material' }); setIsBatchModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Gerar questões do material
+              </Button>
+              <Button onClick={handleStudyMaterial} variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50">
+                <Play className="w-4 h-4 mr-2" />
+                Estudar
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 pt-6 border-t border-slate-100">
+            <div>
+              <div className="flex items-center gap-2 text-slate-500 mb-1">
+                <FileText className="w-4 h-4" />
+                <span className="text-[10px] uppercase font-bold tracking-wider">Páginas</span>
+              </div>
+              <span className="text-2xl font-bold text-slate-900">{material.pageCount || '--'}</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 text-slate-500 mb-1">
+                <Target className="w-4 h-4" />
+                <span className="text-[10px] uppercase font-bold tracking-wider">Assuntos</span>
+              </div>
+              <span className="text-2xl font-bold text-slate-900">{concepts.filter(c => c.level === 'topic' || c.level === 'subtopic').length}</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 text-slate-500 mb-1">
+                <BookOpen className="w-4 h-4" />
+                <span className="text-[10px] uppercase font-bold tracking-wider">Conceitos</span>
+              </div>
+              <span className="text-2xl font-bold text-slate-900">{concepts.filter(c => c.level === 'concept').length}</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 text-slate-500 mb-1" title="Apenas questões com status validado">
+                <FileQuestion className="w-4 h-4" />
+                <span className="text-[10px] uppercase font-bold tracking-wider">Qts Validadas</span>
+              </div>
+              <span className="text-2xl font-bold text-slate-900">{questions.filter(q => q.validationStatus === 'validated').length}</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2 text-slate-500 mb-1" title="Estimativa baseada nos conceitos e abordagens já exploradas.">
+                <Sparkles className="w-4 h-4 text-blue-500" />
+                <span className="text-[10px] uppercase font-bold tracking-wider">Cobertura Est.</span>
+              </div>
+              <span className="text-2xl font-bold text-blue-600">{coverageTree?.material?.coverage || 0}%</span>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {(!isProcessing && concepts.length > 0) && (
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 mb-4 px-1">Árvore de Conhecimentos</h2>
+          {renderedTree.map(node => renderConceptNode(node, 0))}
         </div>
-      </Card>
+      )}
 
       {isBatchModalOpen && batchScope && (
         <BatchGenerationModal 
@@ -451,15 +365,16 @@ export function MaterialDetails() {
           scope={batchScope}
           onClose={() => {
             setIsBatchModalOpen(false);
-            // Reload questions and coverage
-            const reload = async () => {
-              const qts = await materialService.getQuestionsByMaterial(material.id);
-              setQuestions(qts);
-              const covRes = await fetch(`${ENV.API_URL}/materials/${material.id}/coverage-tree`);
-              if (covRes.ok) setCoverageTree(await covRes.json());
-            };
-            reload();
+            loadData(); // Reload stats and coverage
           }}
+        />
+      )}
+
+      {isViewModalOpen && viewScope && (
+        <ViewQuestionsModal
+          scope={viewScope}
+          questions={viewScope.questions}
+          onClose={() => setIsViewModalOpen(false)}
         />
       )}
     </div>

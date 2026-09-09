@@ -20,5 +20,6 @@ export interface Question {
   trapType?: string;
   confidenceScore?: number;
   validationStatus: ValidationStatus;
+  coverageType?: string;
   sourceReferences: SourceReference[];
 }

@@ -77,12 +77,12 @@ export function BatchGenerationModal({ materialId, scope, onClose }: Props) {
         </button>
 
         <h3 className="text-xl font-bold text-slate-900 mb-1">Gerar Questões</h3>
-        <p className="text-sm text-slate-500 mb-6">Escopo: <span className="font-semibold text-slate-700">{scope.name}</span></p>
+        <p className="text-sm text-slate-500 mb-6">Gerar questões sobre: <span className="font-semibold text-slate-700">{scope.name}</span></p>
 
         {status === 'idle' && (
           <div className="space-y-6">
             <div>
-              <label className="text-sm font-semibold text-slate-900 block mb-2">Banca</label>
+              <label className="text-sm font-semibold text-slate-900 block mb-2">Escolha a banca:</label>
               <select 
                 value={board} 
                 onChange={e => setBoard(e.target.value)}
@@ -95,7 +95,7 @@ export function BatchGenerationModal({ materialId, scope, onClose }: Props) {
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-slate-900 block mb-2">Quantidade</label>
+              <label className="text-sm font-semibold text-slate-900 block mb-2">Quantas questões deseja gerar?</label>
               <div className="grid grid-cols-5 gap-2">
                 {[1, 2, 3, 5, 10].map(n => (
                   <button
@@ -143,12 +143,10 @@ export function BatchGenerationModal({ materialId, scope, onClose }: Props) {
               <h4 className="text-lg font-bold text-slate-900">
                 {status === 'completed' ? 'Geração Concluída!' : 'Geração Parcial'}
               </h4>
-              <p className="text-sm text-slate-600 mt-2">
-                {progress.validated} novas questões foram adicionadas ao banco.
-              </p>
+              {status === 'completed' && <p className="text-sm text-slate-600 mt-2">{progress.validated} novas questões foram adicionadas ao banco.</p>}
               {status === 'partial' && (
                 <p className="text-xs text-amber-600 mt-2 bg-amber-50 p-2 rounded border border-amber-100 text-left">
-                  O conteúdo restante apresentou baixa novidade ou não passou na validação. O potencial deste núcleo pode estar esgotado.
+                  {progress.validated} novas questões foram geradas. As demais tentativas não apresentaram novidade suficiente ou não passaram na validação.
                 </p>
               )}
             </div>

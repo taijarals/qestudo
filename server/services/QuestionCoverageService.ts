@@ -101,7 +101,6 @@ export class QuestionCoverageService {
     }
     return leaves;
   }
-}
 
   async getCoverageTree(materialId: string) {
     const materialCoverage = await this.getCoverageForScope(materialId, null, 'material');
@@ -119,3 +118,5 @@ export class QuestionCoverageService {
       nodes: nodeCoverages
     };
   }
+
+}
