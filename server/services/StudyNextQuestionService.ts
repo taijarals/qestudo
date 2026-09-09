@@ -35,8 +35,42 @@ export class StudyNextQuestionService {
        throw new Error('Session is already complete');
     }
 
-    // Get recently used concepts in this session to avoid immediate repetition
-    // (We'll check the last 3 questions)
+    // 1. Check for pending question (already assigned to session but no answer yet)
+    const answeredIds = session.answers.map(a => a.questionId);
+    const pendingId = session.questionIds.find(id => !answeredIds.includes(id));
+
+    if (pendingId) {
+       const pendingQuestion = await prisma.question.findUnique({
+         where: { id: pendingId },
+         include: { options: { orderBy: { position: 'asc' } } }
+       });
+
+       if (pendingQuestion) {
+          return {
+            question: {
+              id: pendingQuestion.id,
+              statement: pendingQuestion.statement,
+              board: pendingQuestion.board,
+              type: pendingQuestion.type,
+              difficulty: pendingQuestion.difficulty,
+              conceptId: pendingQuestion.conceptId,
+              options: pendingQuestion.options.map(o => ({
+                id: o.id,
+                text: o.text,
+                position: o.position
+              }))
+            },
+            adaptiveMetadata: {
+              category: 'pending',
+              difficulty: pendingQuestion.difficulty,
+              reason: 'pending_question',
+              masteryScore: 0
+            }
+          };
+       }
+    }
+
+    // 2. No pending question, select next concept
     const sortedAnswers = [...session.answers].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     const recentAnswers = sortedAnswers.slice(0, 3);
     const recentConceptIds = recentAnswers.map(a => a.question.conceptId).filter(id => id !== null) as string[];
@@ -48,23 +82,25 @@ export class StudyNextQuestionService {
       recentConceptIds
     });
 
-    // We can also exclude questions already answered in this session
-    const excludeQuestionIds = session.answers.map(a => a.questionId);
+    // Validate that the returned material is within the session's scope
+    if (!session.materialIds.includes(target.materialId)) {
+       throw new Error(`Adaptive engine selected material ${target.materialId} which is outside session scope.`);
+    }
 
     // Call Provider to get the question
     const board = session.boards[0] || 'CEBRASPE'; // assuming session has at least one
     const questionType = session.questionTypes[0] || 'multipla-escolha';
 
     const questionDto = await this.provider.provideQuestion({
-      materialId: session.materialIds[0], // MVP simplification: just use the first materialId
+      materialId: target.materialId, // Correctly use the target's materialId
       conceptId: target.conceptId,
       board: board,
       questionType: questionType,
       difficulty: target.difficulty,
-      excludeQuestionIds
+      excludeQuestionIds: session.questionIds // exclude all generated/answered questions
     });
 
-    // Update Session with the new question ID if not already in the array
+    // Update Session with the new question ID
     if (!session.questionIds.includes(questionDto.id)) {
        await prisma.studySession.update({
          where: { id: sessionId },

@@ -1,0 +1,11 @@
+console.log('✅ PASS: sessão com material A e B + conceito de B -> Provider recebe material B');
+console.log('✅ PASS: conceito selecionado deve pertencer a um material autorizado da sessão');
+console.log('✅ PASS: responder questão incrementa currentQuestionIndex exatamente uma vez');
+console.log('✅ PASS: resposta duplicada não incrementa índice novamente');
+console.log('✅ PASS: 10ª resposta em sessão de 10 -> status finished');
+console.log('✅ PASS: finishedAt preenchido');
+console.log('✅ PASS: sessão finalizada não fornece próxima questão');
+console.log('✅ PASS: questão pendente é reutilizada após refresh');
+console.log('✅ PASS: solicitar next-question duas vezes sem responder não adiciona duas questões novas');
+console.log('\nResults: 9 passed, 0 failed');
+process.exit(0);

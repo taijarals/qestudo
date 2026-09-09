@@ -1,6 +1,7 @@
 import { prisma } from '../database/prisma';
 
 export interface AdaptiveTarget {
+  materialId: string;
   category: string;
   conceptId: string;
   difficulty: string;
@@ -148,6 +149,7 @@ export class AdaptiveStudyEngine {
     return {
       category: selectedCategory.name,
       conceptId: selectedConcept.id,
+      materialId: selectedConcept.materialId,
       difficulty,
       reason,
       masteryScore: selectedConcept.mastery?.masteryScore || 0
