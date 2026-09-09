@@ -1,9 +1,11 @@
+const fs = require('fs');
 
+const replacement = `
 import React, { useState, useEffect } from 'react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Play, Settings, Minus, Plus, ArrowRight, ChevronRight, ChevronDown } from 'lucide-react';
-import { useNavigate, useLocation, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useStudySession } from '../context/StudySessionContext';
 import { Material } from '../domain';
 
@@ -17,9 +19,8 @@ interface ConceptNode {
 export function StudyConfig() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
   const state = location.state as { materialId?: string, mode?: string, conceptId?: string } | null;
-  const initialMaterialId = state?.materialId || searchParams.get('materialId') || '';
+  const initialMaterialId = state?.materialId || '';
   const initialMode = state?.mode || 'all';
   const initialConceptId = state?.conceptId;
 
@@ -31,7 +32,6 @@ export function StudyConfig() {
   const [quantity, setQuantity] = useState<number>(10);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [availableQuestions, setAvailableQuestions] = useState<number | null>(null);
 
   const [studyScope, setStudyScope] = useState<'all' | 'specific'>(initialMode as any);
   const [concepts, setConcepts] = useState<ConceptNode[]>([]);
@@ -53,7 +53,7 @@ export function StudyConfig() {
 
   useEffect(() => {
     if (selectedMaterial) {
-      fetch(`/api/materials/${selectedMaterial}/concepts`)
+      fetch(\`/api/materials/\${selectedMaterial}/concepts\`)
         .then(res => res.json())
         .then((data: ConceptNode[]) => {
           setConcepts(data);
@@ -136,7 +136,7 @@ export function StudyConfig() {
         <div key={node.id} className="select-none">
           <div 
             className="flex items-center p-2 hover:bg-slate-50 transition-colors cursor-pointer"
-            style={{ paddingLeft: `${depth * 1.5}rem` }}
+            style={{ paddingLeft: \`\${depth * 1.5}rem\` }}
           >
             <div className="w-6 shrink-0 flex items-center justify-center">
               {hasChildren && (
@@ -174,35 +174,6 @@ export function StudyConfig() {
 
   const leafCount = studyScope === 'all' ? getTotalLeafCount(concepts) : getLeafConceptIds(concepts).length;
 
-  useEffect(() => {
-    if (!selectedMaterial) {
-      setAvailableQuestions(null);
-      return;
-    }
-    
-    let scopeType = studyScope === 'all' ? 'material' : 'concept';
-    let scopeId = studyScope === 'all' ? selectedMaterial : getLeafConceptIds(concepts).join(',');
-
-    // A simpler way for the frontend is to just fetch questions and filter
-    const fetchAvailable = async () => {
-       try {
-         const res = await fetch(`/api/materials/${selectedMaterial}/questions`);
-         const qts = await res.json();
-         let count = 0;
-         if (studyScope === 'all') {
-           count = qts.length;
-         } else {
-           const selectedLeaves = getLeafConceptIds(concepts);
-           count = qts.filter((q: any) => selectedLeaves.includes(q.conceptId)).length;
-         }
-         setAvailableQuestions(count);
-       } catch (e) { console.error(e); }
-    };
-    fetchAvailable();
-
-  }, [selectedMaterial, studyScope, selectedConceptIds, board, questionType]);
-  
-
   const handleStartSession = async () => {
     if (!selectedMaterial) {
       setErrorMsg('Selecione um material.');
@@ -222,14 +193,7 @@ export function StudyConfig() {
     setErrorMsg('');
 
     try {
-      
-    if (availableQuestions !== null && quantity > availableQuestions) {
-      setErrorMsg(`Há apenas ${availableQuestions} questões disponíveis neste escopo. Reduza a quantidade ou gere mais questões antes de iniciar.`);
-      setIsLoading(false);
-      return;
-    }
-
-    const res = await fetch('/api/study-sessions', {
+      const res = await fetch('/api/study-sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -391,21 +355,6 @@ export function StudyConfig() {
             ) : (
                <span className="font-medium">Você estudará {leafCount} conceitos selecionados.</span>
             )}
-            {availableQuestions !== null && (
-               <div className="mt-2 font-bold text-blue-800">
-                  Questões validadas disponíveis no escopo: {availableQuestions}
-               </div>
-            )}
-            {availableQuestions !== null && availableQuestions < quantity && (
-                 <div className="mt-3">
-                   <p className="text-red-600 font-semibold mb-2 text-sm">
-                     Quantidade insuficiente para uma sessão de {quantity} questões.
-                   </p>
-                   <Link to={`/materiais/${selectedMaterial}`} className="inline-block bg-blue-100 text-blue-700 px-4 py-2 rounded-md font-semibold hover:bg-blue-200 transition-colors">
-                     Gerar mais questões
-                   </Link>
-                 </div>
-            )}
           </div>
           <Button size="lg" className="w-full flex items-center justify-center gap-2" onClick={handleStartSession} disabled={isLoading || !selectedMaterial}>
             <span>{isLoading ? 'Criando sessão...' : 'Começar sessão'}</span>
@@ -416,3 +365,6 @@ export function StudyConfig() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('src/pages/StudyConfig.tsx', replacement);

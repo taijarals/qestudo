@@ -4,7 +4,7 @@ export interface Concept {
   parentId?: string;
   name: string;
   description: string;
-  level: number;
+  level: string;
   pageStart?: number;
   pageEnd?: number;
   relatedConceptIds: string[];

@@ -1,0 +1,10 @@
+--- src/pages/MaterialDetails.tsx
++++ src/pages/MaterialDetails.tsx
+@@ -156,7 +156,7 @@
+   const questionCountByConcept: Record<string, number> = {};
+   concepts.forEach(c => {
+-    const count = questions.filter(q => q.conceptId === c.id).length;
+-    questionCountByConcept[c.id] = count > 0 ? count : (c.name.length * 2);
++    const count = questions.filter(q => q.conceptId === c.id && q.validationStatus === 'validated').length;
++    questionCountByConcept[c.id] = count;
+   });

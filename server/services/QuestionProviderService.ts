@@ -58,46 +58,7 @@ export class QuestionProviderService {
     if (existingQuestions.length > 0) {
       selectedQuestion = existingQuestions[Math.floor(Math.random() * existingQuestions.length)];
     } else {
-      // 2. Generate on demand
-      if (!params.conceptId) {
-        throw new Error('conceptId is required to generate new questions');
-      }
-
-      let attempts = 0;
-      const maxAttempts = 3;
-
-      while (attempts < maxAttempts) {
-        attempts++;
-        try {
-          const plan = await this.planner.planQuestion({
-            materialId: params.materialId,
-            conceptId: params.conceptId,
-            board: params.board as 'CEBRASPE' | 'FGV' | 'FCC',
-            questionType: params.questionType as 'certo-errado' | 'multipla-escolha',
-            difficulty: params.difficulty as 'facil' | 'media' | 'dificil'
-          });
-
-          const question = await this.generator.generateQuestion(plan.id);
-          const validationResult = await this.validator.validateQuestion(question?.id || '');
-
-          if (validationResult.validationStatus === 'validated') {
-             selectedQuestion = await prisma.question.findUnique({
-               where: { id: question!.id },
-               include: {
-                 options: { orderBy: { position: 'asc' } },
-                 concept: true,
-               }
-             });
-             break;
-          }
-        } catch (e: any) {
-           console.error('Attempt ' + attempts + ' failed: ' + e.message);
-        }
-      }
-      
-      if (!selectedQuestion) {
-         throw new Error('question_generation_failed');
-      }
+      throw new Error('insufficient_question_bank');
     }
 
     // Update usage stats

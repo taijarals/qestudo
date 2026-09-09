@@ -77,6 +77,7 @@ model Question {
   trapType           String?
   confidenceScore    Float?
   validationStatus   String                    @default("draft")
+  coverageType       String?
   materialId         String
   conceptId          String
   material           Material                  @relation(fields: [materialId], references: [id], onDelete: Cascade)
@@ -262,6 +263,8 @@ model QuestionPlan {
   targetTrueFalse       Boolean?
   trapStrategy          String?
   confusedConceptId     String?
+  coverageType          String?
+  batchId               String?
   sourceChunkIds        String[]
   status                String   @default("planned")
   createdAt             DateTime @default(now())
@@ -327,5 +330,24 @@ model ComprehensionFeedback {
   answer  Answer   @relation(fields: [answerId], references: [id], onDelete: Cascade)
   concept Concept? @relation(fields: [conceptId], references: [id], onDelete: Cascade)
 
+  @@schema("qestudo")
+}
+
+
+model QuestionBatch {
+  id                String   @id @default(uuid())
+  materialId        String
+  scopeType         String   // topic, subtopic, concept
+  scopeId           String
+  board             String
+  questionType      String
+  requestedQuantity Int
+  generatedCount    Int      @default(0)
+  validatedCount    Int      @default(0)
+  rejectedCount     Int      @default(0)
+  duplicateCount    Int      @default(0)
+  status            String   @default("pending") // pending, processing, completed, partial, failed
+  createdAt         DateTime @default(now())
+  completedAt       DateTime?
   @@schema("qestudo")
 }

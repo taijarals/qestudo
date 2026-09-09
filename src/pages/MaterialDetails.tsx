@@ -9,6 +9,7 @@ import { ArrowLeft, ChevronDown, ChevronRight, FileText, Target, BookOpen, FileQ
 import { ENV } from '../config/env';
 import { Concept, ConceptMastery, Material, Question } from '../domain';
 import { cn } from '../lib/utils';
+import { BatchGenerationModal } from '../components/BatchGenerationModal';
 
 interface ConceptNode {
   concept: Concept;
@@ -34,6 +35,9 @@ export function MaterialDetails() {
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStats, setProcessingStats] = useState<{progress: number, error?: string, chunks?: number} | null>(null);
+  const [coverageTree, setCoverageTree] = useState<any>(null);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [batchScope, setBatchScope] = useState<{id: string, name: string, type: string} | null>(null);
 
   useEffect(() => {
     if (!materialId) return;
@@ -50,6 +54,11 @@ export function MaterialDetails() {
       setMasteries(mats);
       setQuestions(qts);
       setLoading(false);
+      
+      try {
+        const covRes = await fetch(`${ENV.API_URL}/materials/${materialId}/coverage-tree`);
+        if (covRes.ok) setCoverageTree(await covRes.json());
+      } catch (e) { console.error(e); }
       
       if (m?.status === 'extracting' || m?.status === 'chunking' || m?.status === 'mapping_concepts') {
         setIsProcessing(true);
@@ -158,7 +167,7 @@ export function MaterialDetails() {
     // Just a mock logic: if we don't have real questions, let's derive a number or use real mock questions
     const count = questions.filter(q => q.conceptId === c.id).length;
     // To make the UI look rich, we'll fallback to a pseudo-random number if count is 0
-    questionCountByConcept[c.id] = count > 0 ? count : (c.name.length * 2);
+    questionCountByConcept[c.id] = questions.filter(q => q.conceptId === c.id && q.validationStatus === 'validated').length;
   });
 
   const buildTree = (parentId?: string): ConceptNode[] => {
@@ -243,15 +252,18 @@ export function MaterialDetails() {
           {/* Title */}
           <div className="flex-1 min-w-0 pr-4">
             <h4 className={cn("truncate", depth === 0 ? "font-bold text-slate-900" : "font-medium text-slate-700")}>
+              <span className="text-slate-500 font-normal mr-2">
+                {node.concept.level === 'discipline' ? 'Matéria:' : node.concept.level === 'topic' ? 'Assunto:' : node.concept.level === 'subtopic' ? 'Subassunto:' : 'Conceito:'}
+              </span>
               {node.concept.name}
             </h4>
           </div>
 
           {/* Stats & Actions */}
           <div className="flex items-center gap-6 shrink-0">
-            <div className="hidden sm:flex items-center gap-1.5 text-sm text-slate-500 w-24">
-              <FileQuestion className="w-4 h-4" />
-              <span>{node.questionCount} qts</span>
+            <div className="hidden sm:flex flex-col text-xs text-slate-500 w-28 text-right">
+              <span className="font-semibold text-slate-700">{coverageTree?.nodes?.[node.concept.id]?.validatedQuestionCount || 0} questões</span>
+              <span>{coverageTree?.nodes?.[node.concept.id]?.coverage || 0}% explorado</span>
             </div>
 
             <div className="hidden md:block w-28">
@@ -266,6 +278,8 @@ export function MaterialDetails() {
               </div>
               <span className="text-sm font-bold text-slate-700 w-10 text-right">{score}%</span>
             </div>
+            <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); handleStudyConcept(node.concept.id); }}>Estudar</Button>
+            <Button variant="default" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={(e) => { e.stopPropagation(); setBatchScope({id: node.concept.id, name: node.concept.name, type: node.concept.level || 'concept'}); setIsBatchModalOpen(true); }}>Gerar</Button>
 
             <Button 
               size="sm" 
@@ -376,21 +390,24 @@ export function MaterialDetails() {
                   <FileText className="w-4 h-4" />
                   <span className="text-xs uppercase font-semibold tracking-wider">Páginas</span>
                 </div>
-                <span className="text-xl font-bold text-slate-900">{material.pageCount || 42}</span>
+                <span className="text-xl font-bold text-slate-900">{material.pageCount ?? '--'}</span>
               </div>
               <div>
                 <div className="flex items-center gap-2 text-slate-500 mb-1">
                   <BookOpen className="w-4 h-4" />
                   <span className="text-xs uppercase font-semibold tracking-wider">Conceitos</span>
                 </div>
-                <span className="text-xl font-bold text-slate-900">{material.conceptCount}</span>
+                <span className="text-xl font-bold text-slate-900">{concepts.filter(c => c.level === 'concept').length || '--'}</span>
               </div>
               <div>
                 <div className="flex items-center gap-2 text-slate-500 mb-1">
                   <FileQuestion className="w-4 h-4" />
                   <span className="text-xs uppercase font-semibold tracking-wider">Questões</span>
                 </div>
-                <span className="text-xl font-bold text-slate-900">{material.questionCount}</span>
+                <div className="flex flex-col">
+                  <span className="text-xl font-bold text-slate-900">{questions.filter(q => q.validationStatus === 'validated').length}</span>
+                  <span className="text-[10px] text-slate-400 leading-tight mt-0.5">já armazenadas</span>
+                </div>
               </div>
               <div>
                 <div className="flex items-center gap-2 text-slate-500 mb-1">
@@ -413,7 +430,7 @@ export function MaterialDetails() {
           </div>
           <div className="text-right">
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">Cobertura</span>
-            <span className="text-lg font-bold text-blue-600">{material.studyCoverage}%</span>
+            <span className="text-lg font-bold text-blue-600">{coverageTree?.material?.coverage || 0}%</span>
           </div>
         </div>
 
@@ -427,6 +444,24 @@ export function MaterialDetails() {
           )}
         </div>
       </Card>
+
+      {isBatchModalOpen && batchScope && (
+        <BatchGenerationModal 
+          materialId={material.id}
+          scope={batchScope}
+          onClose={() => {
+            setIsBatchModalOpen(false);
+            // Reload questions and coverage
+            const reload = async () => {
+              const qts = await materialService.getQuestionsByMaterial(material.id);
+              setQuestions(qts);
+              const covRes = await fetch(`${ENV.API_URL}/materials/${material.id}/coverage-tree`);
+              if (covRes.ok) setCoverageTree(await covRes.json());
+            };
+            reload();
+          }}
+        />
+      )}
     </div>
   );
 }

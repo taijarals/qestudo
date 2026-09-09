@@ -1,3 +1,6 @@
+
+import { QuestionBatchGenerationService } from '../services/QuestionBatchGenerationService';
+import { QuestionCoverageService } from '../services/QuestionCoverageService';
 import { prisma } from '../database/prisma';
 import { Router } from 'express';
 import multer from 'multer';
@@ -50,8 +53,8 @@ apiRouter.post('/study-sessions/:id/next-question', async (req, res) => {
     const result = await studyNextQuestionService.getNextQuestion(req.params.id);
     res.json(result);
   } catch(e: any) {
-    if (e.message === 'question_generation_failed') {
-      return res.status(503).json({ error: 'Failed to generate a valid question' });
+    if (e.message === 'insufficient_question_bank' || e.message === 'question_generation_failed') {
+      return res.status(503).json({ error: e.message === 'insufficient_question_bank' ? 'Banco de questões insuficiente para este escopo. Gere mais questões antes de continuar.' : 'Failed to generate a valid question' });
     }
     if (e.message === 'Session is already complete' || e.message === 'Session is not active') {
       return res.status(400).json({ error: e.message });
