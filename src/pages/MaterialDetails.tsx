@@ -87,7 +87,7 @@ export function MaterialDetails() {
           
           setMaterial(prev => prev ? { ...prev, status: data.status, pageCount: data.pageCount } : prev);
 
-          if (data.status === 'ready_for_mapping' || data.status === 'error' || data.status === 'ready' || data.status === 'mapping_error') {
+          if (['ready_for_mapping', 'error', 'processing_error', 'ready', 'mapping_error', 'pdf_requires_ocr'].includes(data.status)) {
             clearInterval(interval);
             setIsProcessing(false);
           }
