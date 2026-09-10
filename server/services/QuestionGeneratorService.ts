@@ -6,11 +6,7 @@ import { questionGenerationPrompt, QUESTION_GENERATION_PROMPT_VERSION } from '..
 
 export class QuestionGeneratorService {
     
-  constructor() {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY não configurada no servidor.');
-    }
-      }
+  
 
   async generateQuestion(planId: string, batchId?: string) {
     const plan = await prisma.questionPlan.findUnique({

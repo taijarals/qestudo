@@ -121,9 +121,7 @@ export class PdfProcessingService {
         }
       });
       
-      // Automatically start concept mapping for seamless MVP experience
-      const mapper = new ConceptMappingService();
-      mapper.mapConcepts(materialId).catch(console.error);
+      
 
     } catch (error: any) {
       console.error('OUTER CATCH REACHED:', error);

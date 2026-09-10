@@ -6,11 +6,7 @@ import { conceptMappingPrompt, CONCEPT_MAPPING_PROMPT_VERSION } from '../ai/prom
 
 export class ConceptMappingService {
     
-  constructor() {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY não configurada no servidor.');
-    }
-      }
+  
 
   async mapConcepts(materialId: string) {
     console.log(`[mapping_started] Material: ${materialId}`);
@@ -22,7 +18,7 @@ export class ConceptMappingService {
     });
 
     if (!material) throw new Error('Material not found');
-    if (material.status !== 'ready_for_mapping') {
+    if (material.status !== 'ready_for_mapping' && material.status !== 'mapping_error') {
       throw new Error('Material is not ready for mapping');
     }
     
@@ -248,17 +244,40 @@ export class ConceptMappingService {
 
       console.log('[concepts_persisted] Concepts persisted successfully');
 
-      await prisma.material.update({
-        where: { id: materialId },
-        data: { status: 'ready', processingProgress: 100 }
-      });
+      const finalConcepts = await prisma.concept.count({ where: { materialId, level: 'concept' } });
+      if (finalConcepts === 0) {
+        await prisma.material.update({
+          where: { id: materialId },
+          data: { status: 'mapping_error', processingError: 'mapping_invalid_output', processingProgress: 100 }
+        });
+      } else {
+        await prisma.material.update({
+          where: { id: materialId },
+          data: { status: 'ready', processingProgress: 100 }
+        });
+      }
       console.log(`[mapping_completed] Material: ${materialId}`);
 
     } catch (error: any) {
       console.error('[mapping_failed]', error);
+      let errorMsg = 'mapping_failed';
+      const rawMsg = error.message ? error.message.toLowerCase() : '';
+      
+      if (rawMsg.includes('quota') || rawMsg.includes('exhausted') || error.status === 429) {
+        errorMsg = 'quota_exceeded';
+      } else if (rawMsg.includes('rate limit')) {
+        errorMsg = 'rate_limited';
+      } else if (rawMsg.includes('model')) {
+        errorMsg = 'invalid_model';
+      } else if (rawMsg.includes('parse') || rawMsg.includes('json')) {
+        errorMsg = 'mapping_invalid_output';
+      } else {
+        errorMsg = error.message || 'unknown_error';
+      }
+
       await prisma.material.update({
         where: { id: materialId },
-        data: { status: 'mapping_error', processingError: error.message || 'Unknown error during mapping' }
+        data: { status: 'mapping_error', processingError: errorMsg }
       });
     }
   }

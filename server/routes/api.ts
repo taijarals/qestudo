@@ -7,12 +7,12 @@ import { Router } from 'express';
 import multer from 'multer';
 import { questionController } from '../controllers/questions';
 import { StudyNextQuestionService } from '../services/StudyNextQuestionService';
-const studyNextQuestionService = new StudyNextQuestionService();
+
 import { questionProviderController } from '../controllers/questionProvider';
 import { answersController } from '../controllers/answers';
 import { comprehensionFeedbackController } from '../controllers/comprehensionFeedback';
 import { QuestionValidatorService } from '../services/QuestionValidatorService';
-const validatorService = new QuestionValidatorService();
+
 import { questionPlanController } from '../controllers/questionPlans';
 import { materialController } from '../controllers/materials';
 import { studySessionController } from '../controllers/studySessions';
@@ -110,7 +110,7 @@ apiRouter.post('/answers/:answerId/comprehension', comprehensionFeedbackControll
 
 apiRouter.post('/study-sessions/:id/next-question', async (req, res) => {
   try {
-    const result = await studyNextQuestionService.getNextQuestion(req.params.id);
+    const result = await new StudyNextQuestionService().getNextQuestion(req.params.id);
     res.json(result);
   } catch(e: any) {
     if (e.message === 'insufficient_question_bank' || e.message === 'question_generation_failed') {
@@ -127,7 +127,7 @@ apiRouter.post('/study-sessions/:id/next-question', async (req, res) => {
 
 apiRouter.post('/questions/:id/validate', async (req, res) => {
   try {
-    const result = await validatorService.validateQuestion(req.params.id);
+    const result = await new QuestionValidatorService().validateQuestion(req.params.id);
     res.json(result);
   } catch(e: any) {
     res.status(500).json({error: e.message});

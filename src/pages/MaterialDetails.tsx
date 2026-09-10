@@ -79,7 +79,7 @@ export function MaterialDetails() {
       if (m?.status === 'extracting' || m?.status === 'chunking' || m?.status === 'mapping_concepts') {
         setIsProcessing(true);
         pollProcessingStatus(m.id);
-      } else if (m?.status === 'ready_for_mapping' || m?.status === 'ready') {
+      } else if (m?.status === 'ready_for_mapping' || m?.status === 'ready' || m?.status === 'mapping_error') {
         fetchStats(m.id);
         
         // Auto expand top level nodes initially
@@ -101,6 +101,18 @@ export function MaterialDetails() {
     loadData();
   }, [materialId]);
 
+  const handleMapConcepts = async () => {
+    if (!materialId) return;
+    try {
+      await fetch(`${ENV.API_URL}/materials/${materialId}/map-concepts`, { method: 'POST' });
+      setIsProcessing(true);
+      setMaterial(prev => prev ? { ...prev, status: 'mapping_concepts' } : undefined);
+      pollProcessingStatus(materialId);
+    } catch (e) {
+      alert('Erro ao iniciar análise');
+    }
+  };
+
   const pollProcessingStatus = (id: string) => {
     const interval = setInterval(async () => {
       const m = await materialService.getMaterialById(id);
@@ -117,9 +129,10 @@ export function MaterialDetails() {
 
   const fetchStats = async (id: string) => {
     try {
-      const res = await fetch(`${ENV.API_URL}/materials/${id}/processing-stats`);
+      const res = await fetch(`${ENV.API_URL}/materials/${id}/processing-status`);
       if (res.ok) {
-        setProcessingStats(await res.json());
+        const data = await res.json();
+        setProcessingStats({ progress: data.processingProgress || 0, error: data.processingError, chunks: data.chunkCount });
       }
     } catch (e) { console.error(e); }
   };
@@ -288,7 +301,52 @@ export function MaterialDetails() {
         </Button>
       </div>
 
+      
+      {material?.status === 'ready_for_mapping' && !isProcessing && (
+        <Card className="p-6 border-blue-100 bg-blue-50/50">
+          <div className="flex flex-col items-center justify-center text-center py-4">
+            <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+              <FileText className="w-6 h-6 text-blue-600" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">PDF processado com sucesso.</h3>
+            <p className="text-slate-600 mb-6 max-w-md">
+              {material.pageCount || '--'} páginas extraídas. Agora analise o conteúdo para identificar matérias, assuntos e conceitos.
+            </p>
+            <Button onClick={handleMapConcepts} className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Analisar conteúdo
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      {material?.status === 'mapping_error' && !isProcessing && (
+        <Card className="p-6 border-red-100 bg-red-50/50">
+          <div className="flex flex-col items-center justify-center text-center py-4">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <FileText className="w-6 h-6 text-red-600" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Análise conceitual falhou</h3>
+            <p className="text-slate-600 mb-2 max-w-md">
+              PDF processado: ✓<br/>
+              Páginas: {material.pageCount || '--'} ✓<br/>
+              Texto extraído: ✓
+            </p>
+            <p className="text-red-600 font-medium mb-6 max-w-md">
+              {material.processingError === 'quota_exceeded' 
+                ? "Não foi possível analisar o conteúdo porque o limite da IA foi atingido. Seu PDF já está processado e não precisa ser enviado novamente." 
+                : "Houve um erro ao analisar os conceitos. Seu PDF continua salvo."}
+            </p>
+            <Button onClick={handleMapConcepts} className="bg-red-600 hover:bg-red-700 text-white">
+              <Sparkles className="w-4 h-4 mr-2" />
+              Tentar analisar novamente
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {isProcessing && (
+
         <Card className="p-6 border-blue-100 bg-blue-50/50">
           <div className="flex items-center gap-4 mb-4">
             <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -333,15 +391,30 @@ export function MaterialDetails() {
               <h2 className="text-lg font-bold text-slate-900">Estatísticas do Material</h2>
               <p className="text-sm text-slate-500">Resumo da extração e banco de questões geradas</p>
             </div>
-            <div className="flex gap-3">
-              <Button onClick={() => { setBatchScope({ id: material.id, name: 'Material Completo', type: 'material' }); setIsBatchModalOpen(true); }} className="bg-blue-600 hover:bg-blue-700 text-white">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Gerar questões do material
-              </Button>
-              <Button onClick={handleStudyMaterial} variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50">
-                <Play className="w-4 h-4 mr-2" />
-                Estudar
-              </Button>
+            
+            <div className="flex flex-col items-end gap-1">
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => { setBatchScope({ id: material.id, name: 'Material Completo', type: 'material' }); setIsBatchModalOpen(true); }} 
+                  className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                  disabled={material.status !== 'ready'}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Gerar questões do material
+                </Button>
+                <Button 
+                  onClick={handleStudyMaterial} 
+                  variant="outline" 
+                  className="border-blue-200 text-blue-700 hover:bg-blue-50 disabled:opacity-50 disabled:border-slate-200 disabled:text-slate-400"
+                  disabled={material.status !== 'ready'}
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Estudar
+                </Button>
+              </div>
+              {material.status !== 'ready' && (
+                <span className="text-xs text-red-500 pr-1">Analise o conteúdo antes de gerar questões ou estudar.</span>
+              )}
             </div>
           </div>
 

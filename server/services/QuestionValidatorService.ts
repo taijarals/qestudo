@@ -6,11 +6,7 @@ import { questionValidationPrompt, QUESTION_VALIDATION_PROMPT_VERSION } from '..
 
 export class QuestionValidatorService {
     
-  constructor() {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY não configurada no servidor.');
-    }
-      }
+  
 
   async validateQuestion(questionId: string) {
     const question = await prisma.question.findUnique({

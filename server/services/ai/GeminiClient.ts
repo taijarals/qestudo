@@ -12,10 +12,12 @@ export interface GeminiCallParams {
 }
 
 export class GeminiClient {
-  private ai: GoogleGenAI;
-
-  constructor() {
-    this.ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  private _ai?: GoogleGenAI;
+  private get ai(): GoogleGenAI {
+    if (!this._ai) {
+      this._ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    }
+    return this._ai;
   }
 
   async generateContent(params: GeminiCallParams) {
