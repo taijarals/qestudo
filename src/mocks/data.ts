@@ -49,20 +49,20 @@ export const mockMaterials: Material[] = [
 ];
 
 export const mockDomainConcepts: Concept[] = [
-  { id: 'c1', materialId: '1', name: 'Características essenciais', description: '', level: 1, relatedConceptIds: [], confusableConceptIds: [] },
-  { id: 'c1-1', materialId: '1', parentId: 'c1', name: 'Elasticidade', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
-  { id: 'c1-2', materialId: '1', parentId: 'c1', name: 'Resource Pooling', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
-  { id: 'c1-3', materialId: '1', parentId: 'c1', name: 'Measured Service', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c1', materialId: '1', name: 'Características essenciais', description: '', level: 'topic', relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c1-1', materialId: '1', parentId: 'c1', name: 'Elasticidade', description: '', level: 'concept', relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c1-2', materialId: '1', parentId: 'c1', name: 'Resource Pooling', description: '', level: 'concept', relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c1-3', materialId: '1', parentId: 'c1', name: 'Measured Service', description: '', level: 'concept', relatedConceptIds: [], confusableConceptIds: [] },
   
-  { id: 'c2', materialId: '1', name: 'Modelos de serviço', description: '', level: 1, relatedConceptIds: [], confusableConceptIds: [] },
-  { id: 'c2-1', materialId: '1', parentId: 'c2', name: 'IaaS', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
-  { id: 'c2-2', materialId: '1', parentId: 'c2', name: 'PaaS', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
-  { id: 'c2-3', materialId: '1', parentId: 'c2', name: 'SaaS', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c2', materialId: '1', name: 'Modelos de serviço', description: '', level: 'topic', relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c2-1', materialId: '1', parentId: 'c2', name: 'IaaS', description: '', level: 'concept', relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c2-2', materialId: '1', parentId: 'c2', name: 'PaaS', description: '', level: 'concept', relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c2-3', materialId: '1', parentId: 'c2', name: 'SaaS', description: '', level: 'concept', relatedConceptIds: [], confusableConceptIds: [] },
 
-  { id: 'c3', materialId: '1', name: 'Modelos de implantação', description: '', level: 1, relatedConceptIds: [], confusableConceptIds: [] },
-  { id: 'c3-1', materialId: '1', parentId: 'c3', name: 'Pública', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
-  { id: 'c3-2', materialId: '1', parentId: 'c3', name: 'Privada', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
-  { id: 'c3-3', materialId: '1', parentId: 'c3', name: 'Híbrida', description: '', level: 2, relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c3', materialId: '1', name: 'Modelos de implantação', description: '', level: 'topic', relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c3-1', materialId: '1', parentId: 'c3', name: 'Pública', description: '', level: 'concept', relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c3-2', materialId: '1', parentId: 'c3', name: 'Privada', description: '', level: 'concept', relatedConceptIds: [], confusableConceptIds: [] },
+  { id: 'c3-3', materialId: '1', parentId: 'c3', name: 'Híbrida', description: '', level: 'concept', relatedConceptIds: [], confusableConceptIds: [] },
 ];
 
 export const mockDomainMasteries: ConceptMastery[] = [

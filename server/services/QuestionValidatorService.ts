@@ -1,17 +1,16 @@
 import { getGeminiModel } from '../config/gemini';
-import { GoogleGenAI, Type, Schema } from '@google/genai';
+import { Type, Schema } from '@google/genai';
+import { geminiClient } from './ai/GeminiClient';
 import { prisma } from '../database/prisma';
 import { questionValidationPrompt, QUESTION_VALIDATION_PROMPT_VERSION } from '../ai/prompts/questionValidationPrompt';
 
 export class QuestionValidatorService {
-  private ai: GoogleGenAI;
-  
+    
   constructor() {
     if (!process.env.GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY não configurada no servidor.');
     }
-    this.ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  }
+      }
 
   async validateQuestion(questionId: string) {
     const question = await prisma.question.findUnique({
@@ -155,7 +154,7 @@ ${chunksText}
 
     const fullPrompt = `${questionValidationPrompt}\n${promptComplement}`;
 
-    const response = await this.ai.models.generateContent({
+    const response = await geminiClient.generateContent({ operation: 'question_validation', 
       model: model,
       contents: fullPrompt,
       config: {
@@ -163,7 +162,7 @@ ${chunksText}
         responseMimeType: 'application/json',
         responseSchema: responseSchema
       }
-    });
+    , materialId: question.materialId, questionId: question.id, batchId: question.questionPlan?.batchId ?? undefined });
 
     const resultText = response.text;
     if (!resultText) throw new Error('No text returned from Gemini');

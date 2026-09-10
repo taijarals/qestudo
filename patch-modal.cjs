@@ -1,4 +1,6 @@
+const fs = require('fs');
 
+const code = `
 import React, { useState, useEffect } from 'react';
 import { Button } from './ui/Button';
 import { Card } from './ui/Card';
@@ -14,29 +16,16 @@ interface Props {
 export function BatchGenerationModal({ materialId, scope, onClose }: Props) {
   const [quantity, setQuantity] = useState<number>(5);
   const [board, setBoard] = useState('CEBRASPE');
-  const [status, setStatus] = useState<'idle' | 'processing' | 'completed' | 'partial' | 'failed' | 'paused_quota'>('idle');
+  const [status, setStatus] = useState<'idle' | 'processing' | 'completed' | 'partial' | 'failed'>('idle');
   const [batchId, setBatchId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [aiStats, setAiStats] = useState<any>(null);
   const [progress, setProgress] = useState({ generated: 0, validated: 0, requested: 0, rejected: 0, duplicates: 0 });
-
-    useEffect(() => {
-    async function fetchStats() {
-      try {
-        const res = await fetch(`${ENV.API_URL}/ai-usage/summary`);
-        if (res.ok) setAiStats(await res.json());
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    fetchStats();
-  }, []);
 
   const startBatch = async () => {
     setStatus('processing');
     setErrorMessage(null);
     try {
-      const res = await fetch(`${ENV.API_URL}/question-batches`, {
+      const res = await fetch(\`\${ENV.API_URL}/question-batches\`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -69,7 +58,7 @@ export function BatchGenerationModal({ materialId, scope, onClose }: Props) {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`${ENV.API_URL}/question-batches/${batchId}`);
+        const res = await fetch(\`\${ENV.API_URL}/question-batches/\${batchId}\`);
         const data = await res.json();
         
         setProgress({
@@ -127,7 +116,7 @@ export function BatchGenerationModal({ materialId, scope, onClose }: Props) {
                   <button
                     key={n}
                     onClick={() => setQuantity(n)}
-                    className={`h-10 rounded-lg border font-medium transition-colors ${quantity === n ? 'bg-blue-50 border-blue-600 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                    className={\`h-10 rounded-lg border font-medium transition-colors \${quantity === n ? 'bg-blue-50 border-blue-600 text-blue-700' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}\`}
                   >
                     {n}
                   </button>
@@ -135,25 +124,6 @@ export function BatchGenerationModal({ materialId, scope, onClose }: Props) {
               </div>
             </div>
 
-            
-            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mt-4 mb-4">
-              <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Informações de Consumo</h4>
-              <ul className="text-sm space-y-1 text-slate-700">
-                <li className="flex justify-between"><span>Questões solicitadas:</span> <strong>{quantity}</strong></li>
-                <li className="flex justify-between"><span>Máximo de tentativas:</span> <strong>{Math.max(2, Math.ceil(quantity * 1.5))}</strong></li>
-                <li className="flex justify-between mt-2 pt-2 border-t border-slate-200">
-                  <span>Consumo estimado:</span> 
-                  <strong>
-                    {aiStats && aiStats.tokensPerValidatedQuestion > 0 
-                      ? `~${(aiStats.tokensPerValidatedQuestion * quantity).toLocaleString()} tokens`
-                      : 'Sem histórico suficiente'}
-                  </strong>
-                </li>
-              </ul>
-              {aiStats && aiStats.tokensPerValidatedQuestion > 0 && (
-                 <p className="text-[10px] text-slate-400 mt-2 italic text-center">* Estimativa baseada no histórico médio de {aiStats.tokensPerValidatedQuestion.toLocaleString()} tokens/questão.</p>
-              )}
-            </div>
             <Button className="w-full" onClick={startBatch}>
               Iniciar Geração
             </Button>
@@ -220,3 +190,5 @@ export function BatchGenerationModal({ materialId, scope, onClose }: Props) {
     </div>
   );
 }
+`;
+fs.writeFileSync('src/components/BatchGenerationModal.tsx', code);

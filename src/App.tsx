@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { Dashboard } from './pages/Dashboard';
+import { Settings } from './pages/Settings';
 import { Materials } from './pages/Materials';
 import { MaterialDetails } from './pages/MaterialDetails';
 import { StudyConfig } from './pages/StudyConfig';
@@ -25,7 +26,7 @@ export default function App() {
             <Route path="/resultado-sessao" element={<SessionResult />} />
             <Route path="/desempenho" element={<Performance />} />
             <Route path="/erros" element={<ErrorNotebook />} />
-            <Route path="/configuracoes" element={<div className="p-8">Configurações (Em breve)</div>} />
+            <Route path="/configuracoes" element={<Settings />} />
           </Route>
         </Routes>
       </BrowserRouter>

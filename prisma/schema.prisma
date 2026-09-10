@@ -349,5 +349,40 @@ model QuestionBatch {
   status            String   @default("pending") // pending, processing, completed, partial, failed
   createdAt         DateTime @default(now())
   completedAt       DateTime?
+  errorMessage      String?
+  @@schema("qestudo")
+}
+
+model AIUsage {
+  id               String   @id @default(uuid())
+  operation        String   // 'concept_mapping', 'question_generation', 'question_validation'
+  model            String
+  
+  materialId       String?
+  questionId       String?
+  batchId          String?
+  
+  promptTokens     Int?
+  outputTokens     Int?
+  totalTokens      Int?
+  
+  status           String   // 'success', 'failed', 'quota_exceeded', 'rate_limited'
+  errorType        String?
+  errorMessage     String?
+  
+  startedAt        DateTime
+  completedAt      DateTime
+  durationMs       Int
+  
+  createdAt        DateTime @default(now())
+
+  @@schema("qestudo")
+}
+
+model SystemConfig {
+  key              String   @id
+  value            Json
+  updatedAt        DateTime @updatedAt
+
   @@schema("qestudo")
 }

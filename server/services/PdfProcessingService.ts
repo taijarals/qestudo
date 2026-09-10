@@ -1,7 +1,5 @@
 import { prisma } from '../database/prisma';
 import { storageService } from './storage';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
 
 interface PageData {
   hasUsableText?: boolean;
@@ -37,7 +35,8 @@ export class PdfProcessingService {
       // 5. Extract text preserving pages
       const pages: PageData[] = [];
       try {
-        const { PDFParse } = require('pdf-parse');
+        const pdfParseModule = await import('pdf-parse');
+        const PDFParse = (pdfParseModule as any).default || pdfParseModule;
         const parser = new PDFParse(new Uint8Array(fileBuffer));
         const data = await parser.getText();
         if (data && data.pages) {

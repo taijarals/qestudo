@@ -1,17 +1,16 @@
 import { getGeminiModel } from '../config/gemini';
-import { GoogleGenAI, Type, Schema } from '@google/genai';
+import { Type, Schema } from '@google/genai';
+import { geminiClient } from './ai/GeminiClient';
 import { prisma } from '../database/prisma';
 import { conceptMappingPrompt, CONCEPT_MAPPING_PROMPT_VERSION } from '../ai/prompts/conceptMappingPrompt';
 
 export class ConceptMappingService {
-  private ai: GoogleGenAI;
-  
+    
   constructor() {
     if (!process.env.GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY não configurada no servidor.');
     }
-    this.ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  }
+      }
 
   async mapConcepts(materialId: string) {
     console.log(`[mapping_started] Material: ${materialId}`);
@@ -116,7 +115,7 @@ export class ConceptMappingService {
         data: { processingProgress: 30 }
       });
 
-      const response = await this.ai.models.generateContent({
+      const response = await geminiClient.generateContent({ operation: 'concept_mapping', 
         model: model,
         contents: `${conceptMappingPrompt}\n\nMATERIAL CHUNKS:\n${chunksText}`,
         config: {
@@ -124,7 +123,7 @@ export class ConceptMappingService {
           responseMimeType: 'application/json',
           responseSchema: responseSchema
         }
-      });
+      , materialId });
 
       const resultText = response.text;
       if (!resultText) {

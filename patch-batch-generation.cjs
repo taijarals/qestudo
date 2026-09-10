@@ -1,4 +1,6 @@
+const fs = require('fs');
 
+const code = `
 import { prisma } from '../database/prisma';
 import { QuestionPlannerService } from './QuestionPlannerService';
 import { QuestionGeneratorService } from './QuestionGeneratorService';
@@ -38,7 +40,7 @@ export class QuestionBatchGenerationService {
 
     // 2. Start processing in background (fire and forget)
     this.processBatch(batch.id).catch(async (e) => {
-      console.error(`[Batch ${batch.id}] Fatal error:`, e);
+      console.error(\`[Batch \${batch.id}] Fatal error:\`, e);
       await prisma.questionBatch.update({
         where: { id: batch.id },
         data: { status: 'failed', errorMessage: e.message || 'Erro inesperado' }
@@ -74,7 +76,7 @@ export class QuestionBatchGenerationService {
         }
         conceptIds = await this.getLeafConceptIds(batch.scopeId);
       } else {
-        throw new Error(`Tipo de escopo desconhecido: ${batch.scopeType}`);
+        throw new Error(\`Tipo de escopo desconhecido: \${batch.scopeType}\`);
       }
 
       if (conceptIds.length === 0) {
@@ -88,9 +90,9 @@ export class QuestionBatchGenerationService {
       let rejected = batch.rejectedCount;
       let duplicates = batch.duplicateCount;
 
-      const maxAttempts = Math.max(2, Math.ceil(batch.requestedQuantity * 1.5));
+      const maxAttempts = batch.requestedQuantity * 3;
       let attempts = 0;
-      let consecutiveRejections = 0;
+
       // Fetch existing questions to prioritize less explored concepts/types
       const existingQuestions = await prisma.question.findMany({
         where: { materialId: batch.materialId, validationStatus: 'validated', conceptId: { in: conceptIds } },
@@ -109,11 +111,6 @@ export class QuestionBatchGenerationService {
       const sortedTypes = [...coverageTypes].sort((a, b) => typeCounts[a] - typeCounts[b]);
 
       while (validated < batch.requestedQuantity && attempts < maxAttempts) {
-        if (consecutiveRejections >= 3) {
-          console.log(`[Batch ${batchId}] Abortando lote por 3 falhas consecutivas.`);
-          break; // Stop after 3 consecutive failures
-        }
-
         attempts++;
         
         // Select best concept (random among those with lowest count)
@@ -143,7 +140,7 @@ export class QuestionBatchGenerationService {
           });
 
           // Generate
-          const generatedQ = await this.generator.generateQuestion(plan.id, batch.id);
+          const generatedQ = await this.generator.generateQuestion(plan.id);
           if (!generatedQ) throw new Error('Generation failed');
           const questionId = generatedQ.id;
           generated++;
@@ -158,7 +155,6 @@ export class QuestionBatchGenerationService {
           const valResult = await this.validator.validateQuestion(questionId);
 
           if (valResult.validationStatus === 'validated') {
-            consecutiveRejections = 0;
             // Check simple text deduplication
             const question = await prisma.question.findUnique({ where: { id: questionId } });
             const isDup = await this.isDuplicate(question!.statement, batch.materialId, questionId);
@@ -177,33 +173,10 @@ export class QuestionBatchGenerationService {
             }
           } else {
             rejected++;
-            consecutiveRejections++;
           }
         } catch (e: any) {
-          console.error(`[Batch ${batchId}] Error on attempt ${attempts}:`, e.message);
+          console.error(\`[Batch \${batchId}] Error on attempt \${attempts}:\`, e.message);
           rejected++;
-          consecutiveRejections++;
-          if (e.type === 'local_ai_budget_exceeded' || e.message?.includes('local_ai_budget_exceeded')) {
-            await prisma.questionBatch.update({
-              where: { id: batchId },
-              data: { status: 'paused_quota', errorMessage: 'Limite de tokens local excedido' }
-            });
-            return;
-          }
-          if (e.status === 429 || e.message?.toLowerCase().includes('quota') || e.message?.toLowerCase().includes('exhausted')) {
-            await prisma.questionBatch.update({
-              where: { id: batchId },
-              data: { status: 'paused_quota', errorMessage: 'Limite da IA atingido. A geração foi pausada para evitar novas tentativas.' }
-            });
-            return;
-          }
-          if (e.message?.toLowerCase().includes('rate limit')) {
-            await prisma.questionBatch.update({
-              where: { id: batchId },
-              data: { status: 'paused_quota', errorMessage: 'A IA está temporariamente limitando novas requisições. Tente novamente mais tarde.' }
-            });
-            return;
-          }
         }
 
         // Update batch progress inside loop (even if exception occurs)
@@ -214,10 +187,7 @@ export class QuestionBatchGenerationService {
       }
 
       const finalStatus = validated >= batch.requestedQuantity ? 'completed' : (validated > 0 ? 'partial' : 'failed');
-      let finalError = finalStatus === 'failed' ? 'Não foi possível gerar novas questões válidas dentro do limite de tentativas.' : null;
-      if (consecutiveRejections >= 3) {
-        finalError = 'Lote interrompido precocemente devido à alta taxa de rejeição ou erro.';
-      }
+      const finalError = finalStatus === 'failed' ? 'Não foi possível gerar questões válidas (limite de tentativas excedido).' : null;
       
       await prisma.questionBatch.update({
         where: { id: batchId },
@@ -229,7 +199,7 @@ export class QuestionBatchGenerationService {
       });
       
     } catch (e: any) {
-      console.error(`[Batch ${batchId}] Process error:`, e.message);
+      console.error(\`[Batch \${batchId}] Process error:\`, e.message);
       await prisma.questionBatch.update({
         where: { id: batchId },
         data: { 
@@ -268,3 +238,5 @@ export class QuestionBatchGenerationService {
     return false;
   }
 }
+`;
+fs.writeFileSync('server/services/QuestionBatchGenerationService.ts', code);

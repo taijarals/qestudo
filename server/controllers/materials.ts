@@ -7,7 +7,19 @@ import { PdfProcessingService } from '../services/PdfProcessingService';
 import { prisma } from '../database/prisma';
 
 
+import { MaterialDeletionService } from '../services/MaterialDeletionService';
+
 export const materialController = {
+  delete: async (req: Request, res: Response) => {
+    try {
+      const deletionService = new MaterialDeletionService();
+      const result = await deletionService.deleteMaterial(req.params.id as string);
+      res.json(result);
+    } catch (e: any) {
+      if (e.message === 'not_found') return res.status(404).json({ error: 'not_found' });
+      res.status(500).json({ error: e.message });
+    }
+  },
   upload: async (req: Request, res: Response) => {
     try {
       const file = req.file;
@@ -128,25 +140,10 @@ export const materialController = {
   
   getConcepts: async (req: Request, res: Response) => {
     try {
-      const disciplines = await prisma.concept.findMany({
-        where: { materialId: req.params.id as string, level: 'discipline' },
-        include: {
-          children: {
-            include: {
-              children: {
-                include: {
-                  children: {
-                    include: {
-                      sources: { include: { materialChunk: true } }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+      const concepts = await prisma.concept.findMany({
+        where: { materialId: req.params.id as string }
       });
-      res.json(disciplines);
+      res.json(concepts);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
     }

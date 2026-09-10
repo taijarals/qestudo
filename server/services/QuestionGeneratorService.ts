@@ -1,19 +1,18 @@
 import { getGeminiModel } from '../config/gemini';
-import { GoogleGenAI, Type, Schema } from '@google/genai';
+import { Type, Schema } from '@google/genai';
+import { geminiClient } from './ai/GeminiClient';
 import { prisma } from '../database/prisma';
 import { questionGenerationPrompt, QUESTION_GENERATION_PROMPT_VERSION } from '../ai/prompts/questionGenerationPrompt';
 
 export class QuestionGeneratorService {
-  private ai: GoogleGenAI;
-  
+    
   constructor() {
     if (!process.env.GEMINI_API_KEY) {
       throw new Error('GEMINI_API_KEY não configurada no servidor.');
     }
-    this.ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  }
+      }
 
-  async generateQuestion(planId: string) {
+  async generateQuestion(planId: string, batchId?: string) {
     const plan = await prisma.questionPlan.findUnique({
       where: { id: planId },
       include: {
@@ -107,7 +106,7 @@ export class QuestionGeneratorService {
 
       const fullPrompt = `${questionGenerationPrompt}\n${promptComplement}\n\nCONCEITO PRINCIPAL: ${plan.concept.name} - ${plan.concept.description || ''}\n\nMATERIAL CHUNKS:\n${chunksText}`;
 
-      const response = await this.ai.models.generateContent({
+      const response = await geminiClient.generateContent({ operation: 'question_generation', 
         model: model,
         contents: fullPrompt,
         config: {
@@ -115,7 +114,7 @@ export class QuestionGeneratorService {
           responseMimeType: 'application/json',
           responseSchema: responseSchema
         }
-      });
+      , materialId: plan.materialId, batchId });
 
       const resultText = response.text;
       if (!resultText) throw new Error('No text returned from Gemini');
