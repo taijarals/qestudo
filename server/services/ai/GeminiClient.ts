@@ -2,7 +2,7 @@ import { GoogleGenAI, GenerateContentConfig, Content } from '@google/genai';
 import { prisma } from '../../database/prisma';
 
 export interface GeminiCallParams {
-  operation: 'concept_mapping' | 'question_generation' | 'question_validation';
+  operation: 'concept_mapping' | 'question_generation' | 'question_validation' | 'question_batch_generation' | 'question_batch_validation' | 'question_escalation_validation';
   model: string;
   contents: Content[] | string;
   config?: GenerateContentConfig;
@@ -99,8 +99,13 @@ export class GeminiClient {
     const budget = Number(config.value);
     if (isNaN(budget) || budget <= 0) return;
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Bahia', year: 'numeric', month: '2-digit', day: '2-digit' });
+    const parts = formatter.formatToParts(now);
+    const month = parts.find(p => p.type === 'month')?.value;
+    const day = parts.find(p => p.type === 'day')?.value;
+    const year = parts.find(p => p.type === 'year')?.value;
+    const todayStart = new Date(`${year}-${month}-${day}T00:00:00.000-03:00`);
 
     const usageToday = await prisma.aIUsage.aggregate({
       where: {

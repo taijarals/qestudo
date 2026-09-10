@@ -79,17 +79,25 @@ export function Settings() {
           </Card>
           <Card className="p-4">
             <p className="text-xs uppercase font-bold text-slate-500 mb-1">Tokens de entrada</p>
-            <p className="text-2xl font-bold text-slate-900">{summary?.promptTokens?.toLocaleString() ?? '--'}</p>
+            <p className="text-2xl font-bold text-slate-900">{summary?.promptTokens != null ? summary.promptTokens.toLocaleString() : '--'}</p>
           </Card>
           <Card className="p-4">
             <p className="text-xs uppercase font-bold text-slate-500 mb-1">Tokens de saída</p>
-            <p className="text-2xl font-bold text-slate-900">{summary?.outputTokens?.toLocaleString() ?? '--'}</p>
+            <p className="text-2xl font-bold text-slate-900">{summary?.outputTokens != null ? summary.outputTokens.toLocaleString() : '--'}</p>
           </Card>
           <Card className="p-4">
             <p className="text-xs uppercase font-bold text-slate-500 mb-1">Tokens totais</p>
-            <p className="text-2xl font-bold text-blue-600">{summary?.totalTokens?.toLocaleString() ?? '--'}</p>
-            {summary?.tokensPerValidatedQuestion > 0 && (
-              <p className="text-[10px] font-medium text-slate-500 mt-1">~{summary.tokensPerValidatedQuestion.toLocaleString()} / quest. validada</p>
+            <div className="flex items-center gap-2">
+              <p className="text-2xl font-bold text-blue-600">{summary?.totalTokens != null ? summary.totalTokens.toLocaleString() : '--'}</p>
+              {summary?.hasMissingTokenData && summary?.totalTokens != null && (
+                <span className="text-[10px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold" title="Algumas chamadas não retornaram dados de tokens">Parcial</span>
+              )}
+            </div>
+                        {summary?.tokensPerValidatedQuestion > 0 && (
+              <p className="text-[10px] font-medium text-slate-500 mt-1">~{summary.tokensPerValidatedQuestion.toLocaleString()} tokens / quest. validada</p>
+            )}
+            {summary?.aiCallsPerValidatedQuestion > 0 && (
+              <p className="text-[10px] font-medium text-slate-500 mt-1">~{summary.aiCallsPerValidatedQuestion} chamadas / quest. validada</p>
             )}
           </Card>
         </div>
@@ -97,36 +105,44 @@ export function Settings() {
         {/* By Operation */}
         <h3 className="font-bold text-slate-800 mt-6 mb-3">Uso por atividade</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="p-4 bg-slate-50">
-            <div className="flex justify-between items-start mb-2">
-              <p className="font-semibold text-slate-700 flex items-center gap-2">
-                <Database className="w-4 h-4 text-slate-400" /> Mapeamento
-              </p>
-              <span className="text-xs font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">{summary?.operations?.concept_mapping?.calls ?? 0} chamadas</span>
-            </div>
-            <p className="text-lg font-bold text-slate-900">{summary?.operations?.concept_mapping?.totalTokens?.toLocaleString() ?? '--'} <span className="text-xs font-normal text-slate-500">tokens</span></p>
-          </Card>
-          
-          <Card className="p-4 bg-slate-50">
-            <div className="flex justify-between items-start mb-2">
-              <p className="font-semibold text-slate-700 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-slate-400" /> Geração
-              </p>
-              <span className="text-xs font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">{summary?.operations?.question_generation?.calls ?? 0} chamadas</span>
-            </div>
-            <p className="text-lg font-bold text-slate-900">{summary?.operations?.question_generation?.totalTokens?.toLocaleString() ?? '--'} <span className="text-xs font-normal text-slate-500">tokens</span></p>
-          </Card>
-
-          <Card className="p-4 bg-slate-50">
-            <div className="flex justify-between items-start mb-2">
-              <p className="font-semibold text-slate-700 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-slate-400" /> Validação
-              </p>
-              <span className="text-xs font-bold text-slate-500 bg-slate-200 px-2 py-0.5 rounded-full">{summary?.operations?.question_validation?.calls ?? 0} chamadas</span>
-            </div>
-            <p className="text-lg font-bold text-slate-900">{summary?.operations?.question_validation?.totalTokens?.toLocaleString() ?? '--'} <span className="text-xs font-normal text-slate-500">tokens</span></p>
-          </Card>
-        </div>
+          {['concept_mapping', 'question_generation', 'question_validation', 'question_batch_generation', 'question_batch_validation', 'question_escalation_validation'].map(opKey => {
+            const opData = summary?.operations?.[opKey as keyof typeof summary.operations];
+            if (!opData || opData.calls === 0) return null;
+            
+            const titles: Record<string, string> = {
+              concept_mapping: 'Mapeamento de Conceitos',
+              question_generation: 'Geração de Questão (Legado)',
+              question_validation: 'Validação de Questão (Legado)',
+              question_batch_generation: 'Geração em Lote',
+              question_batch_validation: 'Validação em Lote',
+              question_escalation_validation: 'Validação com Escalonamento'
+            };
+            
+            return (
+              <Card key={opKey} className="p-4 border-l-4 border-blue-500">
+                <p className="text-sm font-bold text-slate-700 mb-2">{titles[opKey]}</p>
+                <div className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500">Chamadas:</span>
+                    <span className="text-sm font-semibold">{opData.calls}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500">Sucessos:</span>
+                    <span className="text-sm font-semibold text-emerald-600">{opData.successfulCalls}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-slate-500">Falhas:</span>
+                    <span className="text-sm font-semibold text-rose-600">{opData.failedCalls}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-100 mt-2">
+                    <span className="text-xs text-slate-500">Consumo:</span>
+                    <span className="text-sm font-bold text-slate-900">{opData.totalTokens != null ? opData.totalTokens.toLocaleString() : '--'} <span className="text-[10px] font-normal text-slate-500">tokens</span></span>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+</div>
 
         {/* History Table */}
         <h3 className="font-bold text-slate-800 mt-8 mb-3 flex items-center gap-2">
@@ -148,7 +164,7 @@ export function Settings() {
                 {history.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/50">
                     <td className="px-4 py-3 text-slate-600">
-                      {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {new Date(item.createdAt).toLocaleTimeString('pt-BR', { timeZone: 'America/Bahia', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </td>
                     <td className="px-4 py-3 font-medium text-slate-700">
                       {item.operation === 'concept_mapping' ? 'Mapeamento' : 
@@ -156,7 +172,7 @@ export function Settings() {
                     </td>
                     <td className="px-4 py-3 text-slate-500 text-xs font-mono">{item.model}</td>
                     <td className="px-4 py-3 text-right font-medium text-slate-700">
-                      {item.totalTokens ? item.totalTokens.toLocaleString() : '--'}
+                      {item.totalTokens != null ? item.totalTokens.toLocaleString() : '--'}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {item.status === 'success' ? (

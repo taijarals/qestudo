@@ -141,11 +141,11 @@ export function BatchGenerationModal({ materialId, scope, onClose }: Props) {
               <ul className="text-sm space-y-1 text-slate-700">
                 <li className="flex justify-between"><span>Questões solicitadas:</span> <strong>{quantity}</strong></li>
                 <li className="flex justify-between"><span>Máximo de tentativas:</span> <strong>{Math.max(2, Math.ceil(quantity * 1.5))}</strong></li>
-                <li className="flex justify-between mt-2 pt-2 border-t border-slate-200">
-                  <span>Consumo estimado:</span> 
+                                <li className="flex justify-between mt-2 pt-2 border-t border-slate-200">
+                  <span>Consumo estimado (chamadas):</span> 
                   <strong>
-                    {aiStats && aiStats.tokensPerValidatedQuestion > 0 
-                      ? `~${(aiStats.tokensPerValidatedQuestion * quantity).toLocaleString()} tokens`
+                    {aiStats && aiStats.aiCallsPerValidatedQuestion > 0 
+                      ? `~${Math.ceil(aiStats.aiCallsPerValidatedQuestion * quantity)} chamadas`
                       : 'Sem histórico suficiente'}
                   </strong>
                 </li>

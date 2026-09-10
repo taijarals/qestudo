@@ -1,5 +1,6 @@
 import { prisma } from '../database/prisma';
 import { storageService } from './storage';
+import { ConceptMappingService } from './ConceptMappingService';
 
 interface PageData {
   hasUsableText?: boolean;
@@ -36,7 +37,7 @@ export class PdfProcessingService {
       const pages: PageData[] = [];
       try {
         const pdfParseModule = await import('pdf-parse');
-        const PDFParse = (pdfParseModule as any).default || pdfParseModule;
+        const PDFParse = (pdfParseModule as any).PDFParse || (pdfParseModule as any).default?.PDFParse;
         const parser = new PDFParse(new Uint8Array(fileBuffer));
         const data = await parser.getText();
         if (data && data.pages) {
@@ -119,6 +120,10 @@ export class PdfProcessingService {
           processingProgress: 100 
         }
       });
+      
+      // Automatically start concept mapping for seamless MVP experience
+      const mapper = new ConceptMappingService();
+      mapper.mapConcepts(materialId).catch(console.error);
 
     } catch (error: any) {
       console.error('OUTER CATCH REACHED:', error);

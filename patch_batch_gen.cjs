@@ -1,4 +1,6 @@
-import { prisma } from '../database/prisma';
+const fs = require('fs');
+
+let code = `import { prisma } from '../database/prisma';
 import { QuestionPlannerService } from './QuestionPlannerService';
 import { QuestionBatchGeneratorService } from './QuestionBatchGeneratorService';
 import { QuestionBatchValidatorService } from './QuestionBatchValidatorService';
@@ -7,32 +9,6 @@ export class QuestionBatchGenerationService {
   private planner = new QuestionPlannerService();
   private generator = new QuestionBatchGeneratorService();
   private validator = new QuestionBatchValidatorService();
-
-  async startBatch(params: {
-    materialId: string;
-    scopeId?: string;
-    scopeType?: string;
-    board?: string;
-    questionType?: string;
-    quantity: number;
-  }) {
-    const batch = await prisma.questionBatch.create({
-      data: {
-        materialId: params.materialId,
-        scopeId: params.scopeId || params.materialId,
-        scopeType: params.scopeType || 'material',
-        board: params.board || 'CEBRASPE',
-        questionType: params.questionType || 'certo-errado',
-        requestedQuantity: params.quantity,
-        status: 'pending'
-      }
-    });
-
-    // Start asynchronously
-    this.processBatch(batch.id).catch(console.error);
-
-    return batch;
-  }
 
   async processBatch(batchId: string) {
     const batch = await prisma.questionBatch.findUnique({ where: { id: batchId } });
@@ -45,7 +21,7 @@ export class QuestionBatchGenerationService {
     try {
       await prisma.questionBatch.update({
         where: { id: batchId },
-        data: { status: 'processing', }
+        data: { status: 'processing', startedAt: new Date() }
       });
 
       let conceptIds: string[] = [];
@@ -61,7 +37,7 @@ export class QuestionBatchGenerationService {
         }
         conceptIds = await this.getLeafConceptIds(batch.scopeId);
       } else {
-        throw new Error(`Tipo de escopo desconhecido: ${batch.scopeType}`);
+        throw new Error(\`Tipo de escopo desconhecido: \${batch.scopeType}\`);
       }
 
       if (conceptIds.length === 0) {
@@ -80,7 +56,7 @@ export class QuestionBatchGenerationService {
       let consecutiveRejections = 0;
 
       const existingQuestions = await prisma.question.findMany({
-        where: { materialId: batch.materialId, validationStatus: 'validated', conceptId: { in: conceptIds } },
+        where: { materialId: batch.materialId, validationStatus: 'approved', conceptId: { in: conceptIds } },
         select: { conceptId: true, coverageType: true }
       });
 
@@ -96,7 +72,7 @@ export class QuestionBatchGenerationService {
 
       while (validated < batch.requestedQuantity && attempts < maxAttempts) {
         if (consecutiveRejections >= 3) {
-          console.log(`[Batch ${batchId}] Abortando lote por 3 falhas consecutivas em lotes.`);
+          console.log(\`[Batch \${batchId}] Abortando lote por 3 falhas consecutivas em lotes.\`);
           break; 
         }
 
@@ -149,7 +125,7 @@ export class QuestionBatchGenerationService {
              for (const q of generatedQuestions) {
                const isValid = this.validator.deterministicValidation(q);
                if (isValid) {
-                 await prisma.question.update({ where: { id: q.id }, data: { validationStatus: 'validated' } });
+                 await prisma.question.update({ where: { id: q.id }, data: { validationStatus: 'approved' } });
                  validResultCount++;
                } else {
                  await prisma.question.update({ where: { id: q.id }, data: { validationStatus: 'rejected' } });
@@ -165,7 +141,7 @@ export class QuestionBatchGenerationService {
                    validResultCount++;
                 } else if (mode === 'strict' && vr.validation.qualityScore >= 0.5 && vr.validation.qualityScore < 0.7) {
                    // Escalonamento opcional se for strict e estiver na dúvida (0.5 a 0.69)
-                   console.log(`Escalonando questão ${vr.question.id} para modelo mais forte`);
+                   console.log(\`Escalonando questão \${vr.question.id} para modelo mais forte\`);
                    const escResults = await this.validator.validateBatch([vr.question.id], batch.id, true);
                    if (escResults.length > 0 && escResults[0].isApproved) {
                       validResultCount++;
@@ -192,7 +168,7 @@ export class QuestionBatchGenerationService {
           }
 
         } catch (e: any) {
-          console.error(`[Batch ${batchId}] Error on attempt ${attempts}:`, e.message);
+          console.error(\`[Batch \${batchId}] Error on attempt \${attempts}:\`, e.message);
           consecutiveRejections++;
 
           if (e.type === 'local_ai_budget_exceeded' || e.message?.includes('local_ai_budget_exceeded')) {
@@ -240,7 +216,7 @@ export class QuestionBatchGenerationService {
       });
 
     } catch (e: any) {
-      console.error(`[Batch ${batchId}] Process error:`, e.message);
+      console.error(\`[Batch \${batchId}] Process error:\`, e.message);
       await prisma.questionBatch.update({
         where: { id: batchId },
         data: { 
@@ -265,3 +241,6 @@ export class QuestionBatchGenerationService {
     return leaves;
   }
 }
+`;
+
+fs.writeFileSync('server/services/QuestionBatchGenerationService.ts', code);
